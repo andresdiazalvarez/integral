@@ -11,8 +11,8 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>SISTEMAS</title>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="../../informes/vendor/jspdf.umd.min.js"></script>
+  <script src="../../informes/vendor/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <style>
@@ -3919,7 +3919,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       doc.save(filename);
     }
 
-    async function downloadPdfFromHtml(html, filename, embeddedPayload = null) {
+    async function downloadPdfFromHtml(html, filename, embeddedPayload = null, returnBlob = false) {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ unit: "pt", format: "a4" });
       const pageState = { count: 0 };
@@ -3948,6 +3948,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
           await addElementToPdf(pdf, renderHost, pageState);
         }
         if (!pageState.count) addBlankPdfPage(pdf, pageState);
+        if (returnBlob) return pdf.output("blob");
         if (embeddedPayload) {
           const pdfBytes = new Uint8Array(pdf.output("arraybuffer"));
           const markerBytes = new TextEncoder().encode(REPORT_PDF_DATA_MARKER);
@@ -4639,7 +4640,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       els.installAppBtn.hidden = true;
     });
 
-    if ("serviceWorker" in navigator) {
+    if ("serviceWorker" in navigator && !new URLSearchParams(location.search).has("pciExport")) {
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         const reloadKey = "sistemas-sw-reload-v50";
         if (sessionStorage.getItem(reloadKey)) return;
@@ -4654,6 +4655,16 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       });
     }
 
+    // Puente de solo lectura: reutiliza la generación existente sin descargar ni guardar otra copia.
+    window.integralExportReport = async function(id, excludedEntryIds = []) {
+      const stored = await loadStateFromDb();
+      const report = (stored?.savedReports || appState.savedReports).find(item => item.id === id);
+      if (!report) throw new Error("El informe de Sistemas ya no existe. Actualiza los datos.");
+      const snapshot = cloneData(report);
+      if (snapshot.sourceEntries?.length) snapshot.sourceEntries = snapshot.sourceEntries.filter(entry => !excludedEntryIds.includes(entry.id));
+      if (report.sourceEntries?.length && !snapshot.sourceEntries.length) throw new Error("No hay sistemas seleccionados en este informe.");
+      return downloadPdfFromHtml(buildFullHtml(snapshot), "sistemas.pdf", null, true);
+    };
     renderHome();
     restoreStateFromDb();
   </script>

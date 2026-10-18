@@ -1,4 +1,4 @@
-const modules = {correctivos:'Correctivos',bie:'BIE',hidrantes:'Hidrantes',sistemas:'Sistemas'};
+const modules = {correctivos:'Correctivos',bie:'BIE',hidrantes:'Hidrantes',sistemas:'Sistemas',informes:'Generar informe PCI'};
 function navigate(){
   const key=location.hash.slice(1); const active=Object.hasOwn(modules,key);
   document.getElementById('home').hidden=active;
@@ -10,7 +10,7 @@ function navigate(){
   document.getElementById('module-title').textContent=modules[key];
   document.getElementById('module-note').hidden=key!=='hidrantes';
   if(!document.querySelector('iframe[data-module="'+key+'"]')){
-    const frame=document.createElement('iframe');frame.dataset.module=key;frame.title=modules[key];frame.src='./modulos/'+key+'/index.html';frame.allow='camera; microphone; fullscreen';document.getElementById('frames').append(frame);
+    const frame=document.createElement('iframe');frame.dataset.module=key;frame.title=modules[key];frame.src=key==='informes'?'./informes/index.html':'./modulos/'+key+'/index.html';frame.allow='camera; microphone; fullscreen';document.getElementById('frames').append(frame);
   }
 }
 function connection(){document.getElementById('connection').textContent=navigator.onLine?'Con conexión':'Sin conexión';}

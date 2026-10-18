@@ -2,6 +2,8 @@
 
 Aplicación local que reúne Correctivos, BIE, Hidrantes y Sistemas con navegación común. Los módulos permanecen cargados al cambiar de sección para conservar formularios en curso. Cada módulo conserva sus funciones, importaciones y exportaciones.
 
+Incluye **Generar informe PCI**: selección explícita de centro y revisión, acta nueva o basada en un acta anterior, fotografías de equipos, informes completos de Sistemas, PDF adjuntos, correctivos consolidados, vista previa e historial. Consulta [la guía del generador](docs/INFORMES-PCI.md). Los datos del expediente se guardan en el navegador; no se envían a GitHub.
+
 ## Abrir
 
 Ejecutar `node server.cjs` en esta carpeta y abrir http://127.0.0.1:4173. Mantener la misma dirección y puerto para acceder a los registros guardados. No abrir index.html directamente como archivo.
