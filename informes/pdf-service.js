@@ -13,7 +13,7 @@ window.PCIPdf=(()=>{
   ];
   const installations=['Detección y alarma','Abastecimiento de agua','Reserva de agua','Sala de bombas / tuberías / válvulas','Equipos de bombeo','Hidrantes','Extintores','BIE 25 mm','BIE 45 mm','BIE alta presión','Columna seca','Rociadores húmedos','Rociadores secos','Rociadores de preacción','Rociadores de diluvio','Agua nebulizada','Espuma física','Polvo','Agentes gaseosos','Aerosoles condensados','Control de humos y calor','Otros / innovadores','Señalización luminiscente'];
   function doc(){return new jspdf.jsPDF({unit:'mm',format:'a4',compress:true});}
-  function line(pdf,text,x,y,size=10,bold=false){pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(size);pdf.setTextColor(35);pdf.text(String(text||''),x,y);}
+  function line(pdf,text,x,y,size=10,bold=false){pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(size);pdf.setTextColor(35);pdf.text(Array.isArray(text)?text.map(String):String(text||''),x,y);}
   function head(pdf,d,title){
     pdf.pciDraft=d;pdf.pciTitle=title;
     pdf.setTextColor(...blue);pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('SYCOGROUP',16,19);pdf.setFontSize(11);pdf.text(title,194,18,{align:'right'});
@@ -27,11 +27,13 @@ window.PCIPdf=(()=>{
   function table(pdf,headings,rows,y,options={}){pdf.autoTable({startY:y,head:headings.length?[headings]:undefined,body:rows,margin:{left:16,right:16,top:48,bottom:19},styles:{font:'helvetica',fontSize:9,cellPadding:2.4,overflow:'linebreak',lineColor:[190,200,210],lineWidth:.15},headStyles:{fillColor:blue,fontSize:9},alternateRowStyles:{fillColor:[247,249,251]},rowPageBreak:'avoid',showHead:'everyPage',didDrawPage:data=>{if(data.pageNumber>1&&options.draft)head(pdf,options.draft,options.title||'CONTINUACIÓN');},...options});return pdf.lastAutoTable.finalY+6;}
   function band(pdf,title,y){if(y>245)y=start(pdf,pdf.pciDraft,pdf.pciTitle);pdf.setFillColor(...blue);pdf.rect(16,y,178,7,'F');pdf.setTextColor(255);pdf.setFont('helvetica','bold');pdf.setFontSize(Math.min(10,172/Math.max(pdf.getTextWidth(title),1)*10));pdf.text(title,18,y+4.8);return y+10;}
   function fields(pdf,rows,y,d,title){return table(pdf,[],rows.map(([label,value])=>[label,PCI.text(value)||'No informado']),y,{columnStyles:{0:{cellWidth:62,fontStyle:'bold'}},draft:d,title});}
-  async function image(pdf,src,x,y,w,h){
+  async function image(pdf,src,x,y,w,h,align='center'){
     if(!src||!/^data:image\//.test(src))throw Error('Falta una imagen o su referencia no contiene la fotografía.');
     const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('No se pudo leer una fotografía.'));image.src=src;});
     const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;canvas.getContext('2d').drawImage(img,0,0);const ratio=Math.min(w/canvas.width,h/canvas.height);const iw=canvas.width*ratio,ih=canvas.height*ratio;
-    pdf.addImage(canvas.toDataURL('image/jpeg',.9),'JPEG',x+(w-iw)/2,y+(h-ih)/2,iw,ih);
+    const top=y+(align==='top'?0:(h-ih)/2);
+    pdf.addImage(canvas.toDataURL('image/jpeg',.9),'JPEG',x+(w-iw)/2,top,iw,ih);
+    return {bottom:top+ih};
   }
   async function acta(d,signatures){
     const pdf=doc();let y=start(pdf,d,'ACTA DE MANTENIMIENTO',true);
@@ -64,10 +66,12 @@ window.PCIPdf=(()=>{
     y=band(pdf,'10. ANEXOS',y);fields(pdf,[['Documentación adjunta','Equipos, fotografías, sistemas y relación final de correctivos, según selección del expediente.']],y,d,'ACTA DE MANTENIMIENTO');
     return pdf.output('arraybuffer');
   }
-  async function equipment(d,module,records,excludedPhotos){
+  async function equipment(d,module,records,excludedPhotos,issues){
+    const {correctiveRecords,photoPages}=PCI.equipmentPlan(module,records,issues,excludedPhotos);
     const pdf=doc();let y=start(pdf,d,PCI.names[module].toUpperCase(),true);
-    line(pdf,`${records.length} registros de la revisión seleccionada.`,16,y,10);y+=8;
-    for(const record of records){
+    line(pdf,`${correctiveRecords.length} equipos con correctivos de ${records.length} registros seleccionados.`,16,y,10);y+=8;
+    if(!correctiveRecords.length)y=fields(pdf,[['Correctivos','No constan correctivos en los registros seleccionados. No equivale a conformidad verificada.']],y,d,PCI.names[module].toUpperCase());
+    for(const record of correctiveRecords){
       if(y>238)y=start(pdf,d,PCI.names[module].toUpperCase());
       y=band(pdf,`${PCI.names[module]} · ${record.number||'Sin número'} · ${record.building||'Edificio no indicado'}`,y);
       const r=record.source;
@@ -77,11 +81,20 @@ window.PCIPdf=(()=>{
       if(r.checklist&&Object.keys(r.checklist).length)rows.push(['Comprobaciones de origen',Object.entries(r.checklist).map(([k,v])=>k+': '+PCI.text(v)).join(' / ')]);
       y=fields(pdf,rows,y,d,PCI.names[module].toUpperCase());
     }
-    const defectGroups=new Map();records.forEach(r=>r.defects.forEach(t=>{if(!defectGroups.has(t))defectGroups.set(t,[]);defectGroups.get(t).push(r);}));
+    const defectGroups=new Map();correctiveRecords.forEach(r=>r.defects.forEach(t=>{if(!defectGroups.has(t))defectGroups.set(t,[]);defectGroups.get(t).push(r);}));
     if(defectGroups.size){y=start(pdf,d,PCI.names[module].toUpperCase()+' · INCIDENCIAS');for(const [label,group] of defectGroups){y=fields(pdf,[[label,group.map(r=>`${r.building||'No indicado'} / ${r.number||'Sin número'} / ${r.location||'No indicada'}`).join('\n')]],y,d,'INCIDENCIAS');}}
-    for(const r of records){const photos=r.photos.map((src,i)=>({src,index:i})).filter(p=>p.src&&!excludedPhotos.includes(r.key+':'+p.index));if(!photos.length)continue;
-      for(let offset=0;offset<photos.length;offset+=4){y=start(pdf,d,PCI.names[module].toUpperCase()+' · FOTOGRAFÍAS');y=fields(pdf,[['Equipo',`${r.building||'Edificio no indicado'} / ${r.number||'Sin número'}`],['Ubicación',r.location||'No indicada']],y,d,'FOTOGRAFÍAS');
-        const group=photos.slice(offset,offset+4);for(let i=0;i<group.length;i++){const x=16+(i%2)*91,top=y+Math.floor(i/2)*88;if(top+80>277)throw Error('Identificación demasiado extensa para el anexo fotográfico: '+r.key);await image(pdf,group[i].src,x,top,87,75);line(pdf,'Foto '+(group[i].index+1)+' · '+(r.number||r.id),x,top+79,8);}
+    // El anexo siempre empieza después de todos los datos, en página nueva.
+    for(const pair of photoPages){start(pdf,d,PCI.names[module].toUpperCase()+' · FOTOGRAFÍAS');
+      pdf.setFont('helvetica','normal');pdf.setFontSize(9);
+      const captions=pair.map(({record:r,index})=>[`Equipo ${r.number||'Sin número'} · Foto ${index+1}`,r.building||'Edificio no indicado',r.location||'Ubicación no indicada'].flatMap(t=>pdf.splitTextToSize(t,85)));
+      const photoTop=56+Math.max(4,...captions.map(lines=>lines.length))*4;
+      for(let i=0;i<pair.length;i++){
+        const {record:r,src,index}=pair[i],x=16+i*91;
+        const wrapped=captions[i];
+        if(wrapped.length>13)throw Error('Identificación demasiado extensa para el anexo fotográfico: '+r.key);
+        line(pdf,wrapped,x,54,9);
+        const placed=await image(pdf,src,x,photoTop,87,258-photoTop,'top');
+        pdf.setFontSize(6);const origin=pdf.splitTextToSize('Origen: '+r.key,87);if(origin.length>4)throw Error('Referencia de foto demasiado extensa: '+r.key);line(pdf,origin,x,placed.bottom+5,6);
       }
     }
     return pdf.output('arraybuffer');
@@ -100,7 +113,7 @@ window.PCIPdf=(()=>{
     async function append(label,bytes,pages){const start=target.getPageCount()+1;const count=await mergePart(target,bytes,pages);manifest.push({label,start,end:start+count-1});}
     progress('Generando acta nueva…');await append('Acta de mantenimiento',await acta(d,signatures));
     for(const file of files.filter(f=>f.role==='observations'))await append('Observaciones técnicas del acta: '+file.name,await file.blob.arrayBuffer(),file.pages);
-    for(const module of ['correctivos','bie','hidrantes'])if(d.modules[module]){progress('Generando '+PCI.names[module]+'…');await append(PCI.names[module],await equipment(d,module,records.filter(r=>r.module===module),d.excludedPhotos||[]));}
+    for(const module of ['correctivos','bie','hidrantes'])if(d.modules[module]){progress('Generando '+PCI.names[module]+'…');await append(PCI.names[module],await equipment(d,module,records.filter(r=>r.module===module),d.excludedPhotos||[],issues));}
     if(d.modules.sistemas){const items=new Map([...systems.map(s=>[s.key,{kind:'saved',...s}]),...files.filter(f=>f.role==='systems').map(f=>[f.id,{kind:'pdf',...f}])]);const order=[...(d.systemOrder||[]),...items.keys()].filter((key,i,all)=>all.indexOf(key)===i&&items.has(key));
       for(const key of order){const item=items.get(key);progress('Incorporando sistemas: '+item.name+'…');if(item.kind==='saved'){const blob=await data.exportSystem(item.id,item.excludedEntryIds||[]);await append('Sistemas: '+item.name,await blob.arrayBuffer());}else{if(item.historical){const cover=doc();let y=start(cover,d,'ANTECEDENTE DE SISTEMAS',true);fields(cover,[['Documento histórico',item.name],['Revisión de origen',item.previousRevision||'No indicada'],['Alcance','Páginas históricas pendientes de comprobación. No acreditan pruebas de la revisión actual.']],y,d,'ANTECEDENTE');await append('Identificación de antecedente',cover.output('arraybuffer'));}await append('Sistemas: '+item.name,await item.blob.arrayBuffer(),item.pages);}}
     }

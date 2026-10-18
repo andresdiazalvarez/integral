@@ -59,6 +59,13 @@
     return {errors:[...new Set(errors)],warnings:[...new Set(warnings)]};
   }
   function forExport(draft,partial=false){const d=JSON.parse(JSON.stringify(draft));d.partial=partial;if(partial){for(const key of ['centerName','revision','year','actaNumber','start','end','issued','author'])if(!text(d[key]).trim())d[key]='No informado';if(d.hours&&!d.hoursBasis)d.hoursBasis='Criterio no verificado';}return d;}
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport};
+  function equipmentPlan(module,records,issues,excludedPhotos=[]){
+    const correctiveRecords=records.map(record=>({...record,defects:issues===undefined?record.defects:issues.filter(i=>i.module===module&&i.key===record.key&&i.status!=='antecedente').map(i=>i.text)})).filter(r=>r.defects.length);
+    const photoRecords=module==='correctivos'?correctiveRecords:records;
+    const photos=photoRecords.flatMap(record=>record.photos.map((src,index)=>({record,src,index})).filter(p=>p.src&&!excludedPhotos.includes(record.key+':'+p.index)));
+    const photoPages=[];for(let i=0;i<photos.length;i+=2)photoPages.push(photos.slice(i,i+2));
+    return {correctiveRecords,photoPages};
+  }
+  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);
