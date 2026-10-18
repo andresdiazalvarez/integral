@@ -1,0 +1,15 @@
+{
+  "name": "Hidrantes",
+  "short_name": "Hidrantes",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fff5f7",
+  "theme_color": "#8a1538",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
