@@ -48,7 +48,7 @@
     if(!draft.holderName||!draft.companyName)errors.push('Completa el titular y la empresa mantenedora.');
     if(draft.hours&&!draft.hoursBasis)errors.push('Indica si las horas son totales o por operario.');
     if(draft.signaturePresent&&!draft.signatureConfirmed)errors.push('Confirma la autorización de las imágenes de firma.');
-    if(!draft.systemReviewConfirmed&&systems.length)errors.push('Revisa las incidencias de Sistemas, incluidas las descripciones libres.');
+    if(!draft.systemReviewConfirmed&&draft.modules?.sistemas&&(systems.length||pdfs.length))errors.push('Revisa las incidencias de Sistemas, incluidos los PDF externos y las descripciones libres.');
     for(const key of ['correctivos','bie','hidrantes','sistemas']){const count=key==='sistemas'?systems.length+pdfs.length:records.filter(r=>r.module===key).length;if(draft.modules?.[key]&&!count)errors.push(names[key]+': seleccionado sin datos.');if(!draft.modules?.[key])warnings.push(names[key]+': no se incorpora al expediente.');}
     if(!draft.finalState)warnings.push('Estado final no verificado.');
     if(!draft.technicians)warnings.push('No se han identificado técnicos responsables.');
