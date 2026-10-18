@@ -21,6 +21,7 @@ window.PCIPdf=(()=>{
     pdf.setDrawColor(...blue);pdf.line(16,29,194,29);
     const center=(d.code?d.code+' · ':'')+d.centerName;pdf.setFont('helvetica','bold');pdf.setFontSize(9);const centerSize=Math.min(9,178/Math.max(pdf.getTextWidth(center),1)*9);line(pdf,center,16,35,centerSize,true);
     line(pdf,`${d.revision} · ${d.year}   |   Acta ${d.actaNumber}`,16,41,9);
+    if(d.partial)line(pdf,'BORRADOR · DATOS INCOMPLETOS / SIN VALIDAR',16,46,7,true);
   }
   function start(pdf,d,title,first=false){if(!first)pdf.addPage();head(pdf,d,title);return 48;}
   function table(pdf,headings,rows,y,options={}){pdf.autoTable({startY:y,head:headings.length?[headings]:undefined,body:rows,margin:{left:16,right:16,top:48,bottom:19},styles:{font:'helvetica',fontSize:9,cellPadding:2.4,overflow:'linebreak',lineColor:[190,200,210],lineWidth:.15},headStyles:{fillColor:blue,fontSize:9},alternateRowStyles:{fillColor:[247,249,251]},rowPageBreak:'avoid',showHead:'everyPage',didDrawPage:data=>{if(data.pageNumber>1&&options.draft)head(pdf,options.draft,options.title||'CONTINUACIÓN');},...options});return pdf.lastAutoTable.finalY+6;}
@@ -104,7 +105,7 @@ window.PCIPdf=(()=>{
       for(const key of order){const item=items.get(key);progress('Incorporando sistemas: '+item.name+'…');if(item.kind==='saved'){const blob=await data.exportSystem(item.id,item.excludedEntryIds||[]);await append('Sistemas: '+item.name,await blob.arrayBuffer());}else{if(item.historical){const cover=doc();let y=start(cover,d,'ANTECEDENTE DE SISTEMAS',true);fields(cover,[['Documento histórico',item.name],['Revisión de origen',item.previousRevision||'No indicada'],['Alcance','Páginas históricas pendientes de comprobación. No acreditan pruebas de la revisión actual.']],y,d,'ANTECEDENTE');await append('Identificación de antecedente',cover.output('arraybuffer'));}await append('Sistemas: '+item.name,await item.blob.arrayBuffer(),item.pages);}}
     }
     progress('Consolidando correctivos y paginación…');await append('Relación final de correctivos',correctives(d,issues));
-    const font=await target.embedFont(PDFLib.StandardFonts.Helvetica);const count=target.getPageCount();target.getPages().forEach((p,i)=>{const {width}=p.getSize();p.drawRectangle({x:width-132,y:3,width:128,height:12,color:PDFLib.rgb(1,1,1)});p.drawText(`PCI ${i+1} / ${count}`,{x:width-118,y:6,size:8,font,color:PDFLib.rgb(.15,.24,.34)});});
+    const font=await target.embedFont(PDFLib.StandardFonts.Helvetica);const count=target.getPageCount();target.getPages().forEach((p,i)=>{const {width}=p.getSize();p.drawRectangle({x:width-132,y:3,width:128,height:12,color:PDFLib.rgb(1,1,1)});p.drawText(`PCI ${i+1} / ${count}`,{x:width-118,y:6,size:8,font,color:PDFLib.rgb(.15,.24,.34)});if(d.partial)p.drawText('BORRADOR - DATOS INCOMPLETOS / SIN VALIDAR',{x:18,y:6,size:7,font,color:PDFLib.rgb(.4,.4,.4)});});
     target.setTitle(`${d.centerName} · ${d.revision} · ${d.year}`);target.setAuthor(d.author);target.setSubject('Informe PCI · INTEGRAL');target.setProducer('INTEGRAL · Generador PCI v1');
     const bytes=await target.save();return {blob:new Blob([bytes],{type:'application/pdf'}),manifest,count};
   }

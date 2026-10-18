@@ -38,18 +38,19 @@
   }
   function validate(draft,records,systems,pdfs){
     const errors=[],warnings=[];
-    [['centerName','Centro'],['revision','Revisión'],['year','Año'],['actaNumber','Número de acta'],['start','Fecha de inicio'],['end','Fecha de fin'],['issued','Fecha de emisión'],['author','Usuario que genera el informe']].forEach(([key,label])=>{if(!text(draft[key]).trim())errors.push('Falta: '+label);});
+    const missing=draft.allowIncomplete?warnings:errors;
+    [['centerName','Centro'],['revision','Revisión'],['year','Año'],['actaNumber','Número de acta'],['start','Fecha de inicio'],['end','Fecha de fin'],['issued','Fecha de emisión'],['author','Usuario que genera el informe']].forEach(([key,label])=>{if(!text(draft[key]).trim())missing.push('Falta: '+label);});
     if(draft.start&&draft.end&&draft.start>draft.end)errors.push('La fecha de fin es anterior a la de inicio.');
     if(draft.year&&!/^\d{4}$/.test(text(draft.year)))errors.push('El año debe tener cuatro cifras.');
     if(draft.operators&&(!/^\d+$/.test(text(draft.operators))||+draft.operators<1))errors.push('El número de operarios debe ser un entero positivo.');
-    if(!draft.validated)errors.push('Confirma la revisión de los datos y comprobaciones actuales.');
-    if(draft.mode==='previous'&&!draft.previousFile)errors.push('Selecciona el acta anterior.');
-    if(draft.mode==='previous'&&!draft.previousReviewed)errors.push('Confirma los datos administrativos recuperados del acta anterior.');
-    if(!draft.holderName||!draft.companyName)errors.push('Completa el titular y la empresa mantenedora.');
-    if(draft.hours&&!draft.hoursBasis)errors.push('Indica si las horas son totales o por operario.');
+    if(!draft.validated)missing.push('Confirma la revisión de los datos y comprobaciones actuales.');
+    if(draft.mode==='previous'&&!draft.previousFile)missing.push('Selecciona el acta anterior.');
+    if(draft.mode==='previous'&&!draft.previousReviewed)missing.push('Confirma los datos administrativos recuperados del acta anterior.');
+    if(!draft.holderName||!draft.companyName)missing.push('Completa el titular y la empresa mantenedora.');
+    if(draft.hours&&!draft.hoursBasis)missing.push('Indica si las horas son totales o por operario.');
     if(draft.signaturePresent&&!draft.signatureConfirmed)errors.push('Confirma la autorización de las imágenes de firma.');
-    if(!draft.systemReviewConfirmed&&draft.modules?.sistemas&&(systems.length||pdfs.length))errors.push('Revisa las incidencias de Sistemas, incluidos los PDF externos y las descripciones libres.');
-    for(const key of ['correctivos','bie','hidrantes','sistemas']){const count=key==='sistemas'?systems.length+pdfs.length:records.filter(r=>r.module===key).length;if(draft.modules?.[key]&&!count)errors.push(names[key]+': seleccionado sin datos.');if(!draft.modules?.[key])warnings.push(names[key]+': no se incorpora al expediente.');}
+    if(!draft.systemReviewConfirmed&&draft.modules?.sistemas&&(systems.length||pdfs.length))missing.push('Revisa las incidencias de Sistemas, incluidos los PDF externos y las descripciones libres.');
+    for(const key of ['correctivos','bie','hidrantes','sistemas']){const count=key==='sistemas'?systems.length+pdfs.length:records.filter(r=>r.module===key).length;if(draft.modules?.[key]&&!count)missing.push(names[key]+': seleccionado sin datos.');if(!draft.modules?.[key])warnings.push(names[key]+': no se incorpora al expediente.');}
     if(!draft.finalState)warnings.push('Estado final no verificado.');
     if(!draft.technicians)warnings.push('No se han identificado técnicos responsables.');
     if(draft.modules?.hidrantes)warnings.push('El módulo Hidrantes de origen conserva campos de extintores: verifica que sus datos correspondan a hidrantes.');
@@ -57,6 +58,7 @@
     if(pdfs.some(p=>p.historical))warnings.push('Hay páginas históricas: se identificarán como antecedentes sin alterar su contenido.');
     return {errors:[...new Set(errors)],warnings:[...new Set(warnings)]};
   }
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate};
+  function forExport(draft,partial=false){const d=JSON.parse(JSON.stringify(draft));d.partial=partial;if(partial){for(const key of ['centerName','revision','year','actaNumber','start','end','issued','author'])if(!text(d[key]).trim())d[key]='No informado';if(d.hours&&!d.hoursBasis)d.hoursBasis='Criterio no verificado';}return d;}
+  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -22,6 +22,8 @@ Los documentos del expediente, firmas autorizadas, preferencias, fichas, borrado
 
 ## Utilización
 
+Para ver el documento aunque falten datos, pulsa **Ver informe con datos disponibles** en la cabecera o **Generar con datos incompletos** en el último paso. No es necesario marcar la validación. Se genera un borrador descargable con los datos seleccionados; los campos vacíos se indican como «No informado» o «No verificado», y todas las páginas llevan la indicación de borrador. Se mantienen los controles de centro/revisión, origen modificado, PDF ilegible y autorización de firmas.
+
 1. Abre INTEGRAL desde la misma dirección y navegador donde guardas los registros. Pulsa **Generar informe PCI** y **Actualizar datos de los módulos**.
 2. Indica centro oficial, código, revisión, año, fechas y usuario. Selecciona y asigna solo los registros e informes que correspondan. Los módulos que tienen datos aparecen preseleccionados; desmarca los que no se incorporen.
 3. En **Acta**, elige nueva o anterior como referencia. Completa y revisa todos los datos actuales. El acta anterior muestra sus páginas y texto; puede proponer algunos datos administrativos, que requieren revisión. Los escaneos sin texto se transcriben manualmente; no hay OCR automático. No se trasladan firmas, comprobaciones, técnicos, horas ni fechas de trabajos anteriores.
