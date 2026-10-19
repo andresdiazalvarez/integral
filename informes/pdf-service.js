@@ -27,6 +27,28 @@ window.PCIPdf=(()=>{
   function table(pdf,headings,rows,y,options={}){pdf.autoTable({startY:y,head:headings.length?[headings]:undefined,body:rows,margin:{left:16,right:16,top:48,bottom:19},styles:{font:'helvetica',fontSize:9,cellPadding:2.4,overflow:'linebreak',lineColor:[190,200,210],lineWidth:.15},headStyles:{fillColor:blue,fontSize:9},alternateRowStyles:{fillColor:[247,249,251]},rowPageBreak:'avoid',showHead:'everyPage',didDrawPage:data=>{if(data.pageNumber>1&&options.draft)head(pdf,options.draft,options.title||'CONTINUACIÓN');},...options});return pdf.lastAutoTable.finalY+6;}
   function band(pdf,title,y){if(y>245)y=start(pdf,pdf.pciDraft,pdf.pciTitle);pdf.setFillColor(...blue);pdf.rect(16,y,178,7,'F');pdf.setTextColor(255);pdf.setFont('helvetica','bold');pdf.setFontSize(Math.min(10,172/Math.max(pdf.getTextWidth(title),1)*10));pdf.text(title,18,y+4.8);return y+10;}
   function fields(pdf,rows,y,d,title){return table(pdf,[],rows.map(([label,value])=>[label,PCI.text(value)||'No informado']),y,{columnStyles:{0:{cellWidth:62,fontStyle:'bold'}},draft:d,title});}
+  function correctiveHeader(pdf,d,title){
+    const page=pdf.internal.getCurrentPageInfo().pageNumber;pdf.pciCompactHeaders=pdf.pciCompactHeaders||new Set();if(pdf.pciCompactHeaders.has(page))return;pdf.pciCompactHeaders.add(page);
+    pdf.setFont('helvetica','bold');pdf.setFontSize(15);pdf.setTextColor(0);pdf.text(title,105,18,{align:'center'});
+    pdf.setFont('helvetica','normal');pdf.setFontSize(8);const context=[d.code,d.centerName,`${d.revision} · ${d.year}`].filter(Boolean).join(' · ');const size=Math.min(8,178/Math.max(pdf.getTextWidth(context),1)*8);line(pdf,context,16,25,size);
+    if(d.partial)line(pdf,'BORRADOR · DATOS INCOMPLETOS / SIN VALIDAR',16,30,7,true);
+  }
+  function correctiveTables(pdf,d,module,groups,y,pageTitle,compactHeader=true){
+    const drawHeader=()=>compactHeader?correctiveHeader(pdf,d,pageTitle):head(pdf,d,pageTitle),top=compactHeader?35:48;
+    const numberHeading=module==='correctivos'?'Nº EXTINTOR':module==='bie'?'Nº BIE':'Nº HIDRANTE';
+    for(const group of groups){if(y>246){pdf.addPage();drawHeader();y=top;}
+      pdf.autoTable({startY:y,margin:{left:16,right:16,top,bottom:19},theme:'grid',
+        head:[[{content:group.title,colSpan:4,styles:{fillColor:[35,95,153],textColor:255,halign:'left',fontSize:9,fontStyle:'bold',minCellHeight:8}}],
+          ['EDIFICIO / DEPENDENCIA',numberHeading,'MODELO','INCIDENCIA']],
+        body:group.rows.map(r=>[r.building,r.number,r.model,r.incidence]),
+        styles:{font:'helvetica',fontSize:8,textColor:0,fillColor:255,lineColor:0,lineWidth:.15,cellPadding:1.8,minCellHeight:7,overflow:'linebreak'},
+        headStyles:{fillColor:[220,234,246],textColor:0,fontStyle:'bold',fontSize:7,halign:'center'},
+        columnStyles:{0:{cellWidth:45},1:{cellWidth:23},2:{cellWidth:53},3:{cellWidth:57}},
+        showHead:'everyPage',rowPageBreak:'avoid',willDrawPage:drawHeader});
+      y=pdf.lastAutoTable.finalY+4;
+    }
+    return y;
+  }
   async function image(pdf,src,x,y,w,h,align='center'){
     if(!src||!/^data:image\//.test(src))throw Error('Falta una imagen o su referencia no contiene la fotografía.');
     const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('No se pudo leer una fotografía.'));image.src=src;});
@@ -68,21 +90,10 @@ window.PCIPdf=(()=>{
   }
   async function equipment(d,module,records,excludedPhotos,issues){
     const {correctiveRecords,photoPages}=PCI.equipmentPlan(module,records,issues,excludedPhotos);
-    const pdf=doc();let y=start(pdf,d,PCI.names[module].toUpperCase(),true);
-    line(pdf,`${correctiveRecords.length} equipos con correctivos de ${records.length} registros seleccionados.`,16,y,10);y+=8;
-    if(!correctiveRecords.length)y=fields(pdf,[['Correctivos','No constan correctivos en los registros seleccionados. No equivale a conformidad verificada.']],y,d,PCI.names[module].toUpperCase());
-    for(const record of correctiveRecords){
-      if(y>238)y=start(pdf,d,PCI.names[module].toUpperCase());
-      y=band(pdf,`${PCI.names[module]} · ${record.number||'Sin número'} · ${record.building||'Edificio no indicado'}`,y);
-      const r=record.source;
-      const rows=[['Identificación / ubicación',[record.number,r.numeroSerie,record.location||'No indicada'].filter(Boolean).join(' / ')],['Modelo / tipo',r.modelo||r.tipo],['Fabricante / señal',[r.fabricanteMarca,r.senal].filter(Boolean).join(' / ')],['Fabricación / retimbrado',[r.fechaFabricacion,r.fechaProximoRetimbrado].filter(Boolean).join(' / ')]];
-      if(module==='bie')rows.push(['Operaciones / revisión / estado',[r.operacionesRealizadas,r.tipoRevision,r.estadoEquipo].filter(Boolean).join(' / ')],['Caducidad 20 años',r.cadu20A]);
-      rows.push(['Observaciones',r.observaciones],['Incidencias documentadas',record.defects.join('\n')||'No constan defectos registrados; no equivale a conformidad verificada.'],['Visto (dato de origen)',r.visto?'Sí':'No'],['Referencia de origen',record.key]);
-      if(r.checklist&&Object.keys(r.checklist).length)rows.push(['Comprobaciones de origen',Object.entries(r.checklist).map(([k,v])=>k+': '+PCI.text(v)).join(' / ')]);
-      y=fields(pdf,rows,y,d,PCI.names[module].toUpperCase());
-    }
-    const defectGroups=new Map();correctiveRecords.forEach(r=>r.defects.forEach(t=>{if(!defectGroups.has(t))defectGroups.set(t,[]);defectGroups.get(t).push(r);}));
-    if(defectGroups.size){y=start(pdf,d,PCI.names[module].toUpperCase()+' · INCIDENCIAS');for(const [label,group] of defectGroups){y=fields(pdf,[[label,group.map(r=>`${r.building||'No indicado'} / ${r.number||'Sin número'} / ${r.location||'No indicada'}`).join('\n')]],y,d,'INCIDENCIAS');}}
+    const pdf=doc(),title='CORRECTIVOS DE '+PCI.names[module].toUpperCase();correctiveHeader(pdf,d,title);
+    const groups=PCI.correctiveGroups(module,correctiveRecords);
+    correctiveTables(pdf,d,module,groups,35,title);
+    if(!groups.length)line(pdf,'No constan correctivos en los registros seleccionados.',16,41,10);
     // El anexo siempre empieza después de todos los datos, en página nueva.
     for(const pair of photoPages){start(pdf,d,PCI.names[module].toUpperCase()+' · FOTOGRAFÍAS');
       pdf.setFont('helvetica','normal');pdf.setFontSize(9);
@@ -99,8 +110,9 @@ window.PCIPdf=(()=>{
     }
     return pdf.output('arraybuffer');
   }
-  function correctives(d,issues){const pdf=doc();let y=start(pdf,d,'RELACIÓN FINAL DE CORRECTIVOS',true);
+  function correctives(d,issues,records){const pdf=doc();let y=start(pdf,d,'RELACIÓN FINAL DE CORRECTIVOS',true);
     for(const module of Object.keys(PCI.names)){const current=issues.filter(x=>x.module===module);if(!current.length)continue;if(y>230)y=start(pdf,d,'RELACIÓN FINAL DE CORRECTIVOS');y=band(pdf,PCI.names[module].toUpperCase(),y);
+      if(module!=='sistemas'){y=correctiveTables(pdf,d,module,PCI.correctiveGroups(module,records.filter(r=>r.module===module),current),y,'RELACIÓN FINAL DE CORRECTIVOS',false);continue;}
       const groups=module==='sistemas'?[['Centrales de detección con averías, alarmas o desconexiones',current.filter(x=>/detecci/i.test(x.type||''))],['Sistemas de extinción con incidencias',current.filter(x=>/extinci/i.test(x.type||''))],['Grupo de presión y red de agua contra incendios',current.filter(x=>/presi|redes/i.test(x.type||''))],['Otros sistemas',current.filter(x=>!/detecci|extinci|presi|redes/i.test(x.type||''))]]:[['',current]];
       for(const [label,rows] of groups){if(!rows.length)continue;if(label){if(y>245)y=start(pdf,d,'RELACIÓN FINAL DE CORRECTIVOS');line(pdf,label,16,y,10,true);y+=6;}y=table(pdf,['Edificio / dependencia','Número / equipo','Incidencia / procedencia'],rows.map(x=>[x.building||'No indicado',x.number||'No indicado',x.text+(x.status==='antecedente'?'\nANTECEDENTE '+(x.previousRevision||'')+' · pendiente de comprobación':'')]),y,{columnStyles:{0:{cellWidth:44},1:{cellWidth:34}},draft:d,title:'RELACIÓN FINAL DE CORRECTIVOS'});}}
     if(!issues.length)fields(pdf,[['Incidencias','No constan incidencias en los datos seleccionados. No equivale a certificación de conformidad.']],y,d,'RELACIÓN FINAL DE CORRECTIVOS');return pdf.output('arraybuffer');}
@@ -117,7 +129,7 @@ window.PCIPdf=(()=>{
     if(d.modules.sistemas){const items=new Map([...systems.map(s=>[s.key,{kind:'saved',...s}]),...files.filter(f=>f.role==='systems').map(f=>[f.id,{kind:'pdf',...f}])]);const order=[...(d.systemOrder||[]),...items.keys()].filter((key,i,all)=>all.indexOf(key)===i&&items.has(key));
       for(const key of order){const item=items.get(key);progress('Incorporando sistemas: '+item.name+'…');if(item.kind==='saved'){const blob=await data.exportSystem(item.id,item.excludedEntryIds||[]);await append('Sistemas: '+item.name,await blob.arrayBuffer());}else{if(item.historical){const cover=doc();let y=start(cover,d,'ANTECEDENTE DE SISTEMAS',true);fields(cover,[['Documento histórico',item.name],['Revisión de origen',item.previousRevision||'No indicada'],['Alcance','Páginas históricas pendientes de comprobación. No acreditan pruebas de la revisión actual.']],y,d,'ANTECEDENTE');await append('Identificación de antecedente',cover.output('arraybuffer'));}await append('Sistemas: '+item.name,await item.blob.arrayBuffer(),item.pages);}}
     }
-    progress('Consolidando correctivos y paginación…');await append('Relación final de correctivos',correctives(d,issues));
+    progress('Consolidando correctivos y paginación…');await append('Relación final de correctivos',correctives(d,issues,records));
     const font=await target.embedFont(PDFLib.StandardFonts.Helvetica);const count=target.getPageCount();target.getPages().forEach((p,i)=>{const {width}=p.getSize();p.drawRectangle({x:width-132,y:3,width:128,height:12,color:PDFLib.rgb(1,1,1)});p.drawText(`PCI ${i+1} / ${count}`,{x:width-118,y:6,size:8,font,color:PDFLib.rgb(.15,.24,.34)});if(d.partial)p.drawText('BORRADOR - DATOS INCOMPLETOS / SIN VALIDAR',{x:18,y:6,size:7,font,color:PDFLib.rgb(.4,.4,.4)});});
     target.setTitle(`${d.centerName} · ${d.revision} · ${d.year}`);target.setAuthor(d.author);target.setSubject('Informe PCI · INTEGRAL');target.setProducer('INTEGRAL · Generador PCI v1');
     const bytes=await target.save();return {blob:new Blob([bytes],{type:'application/pdf'}),manifest,count};

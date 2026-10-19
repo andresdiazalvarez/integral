@@ -69,6 +69,29 @@
   function inclusionGroups(catalog,bindings,centerId,revisionId,draftId){
     const groups=new Map();for(const r of catalog){const key=text(r.client).trim();if(!groups.has(key))groups.set(key,{client:key,available:[],conflicts:[]});const b=bindings[r.key];const ownDraft=draftId&&b?.draftId===draftId;const conflict=b&&!ownDraft&&(b.centerId!==centerId||b.revisionId!==revisionId);groups.get(key)[conflict?'conflicts':'available'].push(r.key);}return [...groups.values()];
   }
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups};
+  function correctiveGroups(module,records,issues){
+    const labels=module==='correctivos'?[
+      ['EXTINTORES CADUCADOS',['extintor caducado','caducado']],
+      ['EXTINTORES DESCARGADOS',['extintor descargado','descargado']],
+      ['EXTINTORES SIN PRESIÓN',['extintor sin presión','sin presión']],
+      ['EXTINTORES CON PRESIÓN BAJA',['extintor con presión baja','presión baja']],
+      ['EXTINTORES CON PRESIÓN ALTA',['extintor con presión alta','presión alta']],
+      ['EXTINTORES CON OBSTÁCULOS',['hay un obstáculo','obstáculo']],
+      ['EXTINTORES EN EL SUELO',['extintor en el suelo','en el suelo']],
+      ['CRISTAL DE ARMARIO ROTO O SIN CRISTAL',['cristal armario roto o sin cristal','cristal del extintor ausente o roto','cristal roto']],
+      ['EXTINTORES SIN SEÑAL',['sin señal']],
+      ['SEÑAL CADUCADA',['señal caducada']],
+      ['EXTINTORES EN MAL ESTADO',['extintor en mal estado','mal estado']],
+      ['EXTINTORES RETIMBRADOS',['extintor retimbrado']],
+      ['EXTINTORES CARGADOS',['extintor cargado']]
+    ]:[];
+    const source=issues===undefined?records.flatMap(r=>r.defects.map(value=>({module,key:r.key,building:r.building,number:r.number,text:value,status:'actual'}))):issues.filter(i=>i.module===module);
+    const groups=new Map(),seen=new Set();
+    for(const issue of source){const record=records.find(r=>r.key===issue.key);const canonical=labels.find(([,aliases])=>aliases.some(a=>norm(a)===norm(issue.text)));const title=canonical?canonical[0]:text(issue.text).toLocaleUpperCase('es');const unique=JSON.stringify([issue.key,norm(issue.text),issue.status||'actual']);if(seen.has(unique))continue;seen.add(unique);
+      if(!groups.has(title))groups.set(title,{title,order:canonical?labels.indexOf(canonical):labels.length,rows:[]});groups.get(title).rows.push({key:issue.key,building:issue.building||record?.building||'—',number:issue.number||record?.number||'—',model:text(record?.source?.modelo||record?.source?.tipo)||'—',incidence:issue.text+(issue.status==='antecedente'?'\nANTECEDENTE '+(issue.previousRevision||'')+' · pendiente de comprobación':'' )});
+    }
+    return [...groups.values()].sort((a,b)=>a.order-b.order);
+  }
+  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);

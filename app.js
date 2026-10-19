@@ -10,7 +10,7 @@ function navigate(){
   document.getElementById('module-title').textContent=modules[key];
   document.getElementById('module-note').hidden=key!=='hidrantes';
   if(!document.querySelector('iframe[data-module="'+key+'"]')){
-    const frame=document.createElement('iframe');frame.dataset.module=key;frame.title=modules[key];frame.src=key==='informes'?'./informes/index.html?v=5':'./modulos/'+key+'/index.html';frame.allow='camera; microphone; fullscreen';document.getElementById('frames').append(frame);
+    const frame=document.createElement('iframe');frame.dataset.module=key;frame.title=modules[key];frame.src=key==='informes'?'./informes/index.html?v=6':'./modulos/'+key+'/index.html';frame.allow='camera; microphone; fullscreen';document.getElementById('frames').append(frame);
   }
 }
 function connection(){document.getElementById('connection').textContent=navigator.onLine?'Con conexión':'Sin conexión';}
