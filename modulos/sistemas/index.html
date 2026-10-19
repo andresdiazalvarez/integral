@@ -1096,6 +1096,7 @@
     </section>
   </main>
 
+  <script src="../../informes/core.js?v=7"></script>
   <script>
     const SYSTEMS = [
       "Central de Detección de Incendios",
@@ -4658,7 +4659,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     // Puente de solo lectura: reutiliza la generación existente sin descargar ni guardar otra copia.
     window.integralExportReport = async function(id, excludedEntryIds = []) {
       const stored = await loadStateFromDb();
-      const report = (stored?.savedReports || appState.savedReports).find(item => item.id === id);
+      const report = PCI.systemReportSources(stored || appState).find(item => item.id === id);
       if (!report) throw new Error("El informe de Sistemas ya no existe. Actualiza los datos.");
       const snapshot = cloneData(report);
       if (snapshot.sourceEntries?.length) snapshot.sourceEntries = snapshot.sourceEntries.filter(entry => !excludedEntryIds.includes(entry.id));

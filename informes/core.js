@@ -93,6 +93,16 @@
     }
     return [...groups.values()].sort((a,b)=>a.order-b.order);
   }
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups,photoLayout};
+  function systemReportSources(state={}){
+    state=state||{};
+    const current=state.current||{},saved=Array.isArray(state.savedReports)?state.savedReports:[];
+    const legacy=Object.entries(current.systems||{}).filter(([,data])=>data&&typeof data==='object').map(([type,data])=>({id:'current:'+type,type,meta:{system:type,denomination:type},sections:data.sections||{},checks:data.checks||{},checkNotes:data.checkNotes||{},photos:data.photos||[],mountedHtml:data.mountedHtml||'',mountedText:data.mountedText||''}));
+    const entries=Array.isArray(current.entries)&&current.entries.length?current.entries:legacy;
+    const hasCurrent=entries.length>0;
+    const result=saved.filter(r=>!hasCurrent||!current.editingId||r.id!==current.editingId);
+    if(hasCurrent)result.push({...current,id:current.editingId||'__pci_current__',sourceKind:'current',sourceEntries:entries,systems:[],replacesSavedId:current.editingId||null});
+    return result;
+  }
+  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups,photoLayout,systemReportSources};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);

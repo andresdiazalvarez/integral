@@ -3,16 +3,16 @@ let pendingGeneration=null;
 function inclusionStats(){
   const records=selectedRecords(),systems=selectedSystems(),issues=finalIssues();
   const correctiveRecords=['correctivos','bie','hidrantes'].reduce((n,module)=>n+PCI.equipmentPlan(module,records.filter(r=>r.module===module),issues,draft.excludedPhotos||[]).correctiveRecords.length,0);
-  return {available:allRecords.length,assigned:assigned().filter(r=>r.module!=='sistemas').length,included:records.length,systems:systems.length,correctives:correctiveRecords,photos:plannedPhotos(records,issues).length};
+  return {available:allRecords.length,assigned:assigned().filter(r=>r.module!=='sistemas').length,included:records.length,systems:systems.length,systemsAvailable:systemReports.length,currentSystems:systemReports.filter(r=>r.source.sourceKind==='current').reduce((n,r)=>n+(r.source.sourceEntries||[]).length,0),correctives:correctiveRecords,photos:plannedPhotos(records,issues).length};
 }
 function renderInclusionStatus(){
   if(!draft)return;const s=inclusionStats(),box=$('inclusion-status');
-  box.innerHTML=`<strong>${s.available} equipos disponibles · ${s.assigned} asignados · ${s.included} incluidos en el informe</strong><p>${s.correctives} equipos con correctivos · ${s.photos} fotos que se exportarán · ${s.systems} informes de Sistemas incluidos.</p>${s.available&&!s.included?'<p class="warning">Hay equipos guardados, pero ninguno está incluido en el PDF. Pulsa «Incorporar equipos al informe».</p>':''}`;
+  box.innerHTML=`<strong>${s.available} equipos disponibles · ${s.assigned} asignados · ${s.included} incluidos en el informe</strong><p>${s.correctives} equipos con correctivos · ${s.photos} fotos que se exportarán · ${s.systems} informes de Sistemas incluidos / ${s.systemsAvailable} disponibles${s.currentSystems?' ('+s.currentSystems+' sistemas en el trabajo abierto)':''}.</p>${s.systemsAvailable&&!s.systems?'<p class="warning">Hay informes de Sistemas disponibles que todavía no están incluidos. Pulsa «Incorporar equipos al informe» para seleccionarlos.</p>':''}${s.available&&!s.included?'<p class="warning">Hay equipos guardados, pero ninguno está incluido en el PDF. Pulsa «Incorporar equipos al informe».</p>':''}`;
   $('include-data').textContent=s.included?'Revisar equipos incluidos en el informe':'Incorporar equipos al informe';
 }
 function openInclusion(generateMode=null){
   pendingGeneration=generateMode;const groups=PCI.inclusionGroups(catalog,bindings,centerId(),revisionId(),draft.id);
-  $('inclusion-groups').innerHTML=groups.map((g,i)=>`<label class="inclusion-group"><input type="checkbox" data-inclusion-group="${i}" ${groups.length===1&&g.available.length?'checked':''} ${!g.available.length?'disabled':''}><span><strong>${esc(g.client||'Cliente sin indicar')}</strong><small>${g.available.length} registros disponibles para este expediente${g.conflicts.length?' · '+g.conflicts.length+' asignados a otro centro/revisión (no se trasladan)':''}</small></span></label>`).join('')||'<p>No hay registros disponibles en los módulos.</p>';
+  $('inclusion-groups').innerHTML=groups.map((g,i)=>`<label class="inclusion-group"><input type="checkbox" data-inclusion-group="${i}" ${groups.length===1&&g.available.length?'checked':''} ${!g.available.length?'disabled':''}><span><strong>${esc(g.client||'Sin cliente indicado (incluye el trabajo abierto si aparece Sistemas)')}</strong><small>${g.available.length} registros disponibles para este expediente${g.available.some(key=>catalog.find(r=>r.key===key)?.module==='sistemas')?' · INCLUYE SISTEMAS'+(g.available.some(key=>catalog.find(r=>r.key===key)?.source.sourceKind==='current')?' · Trabajo abierto en Sistemas':''):''}${g.conflicts.length?' · '+g.conflicts.length+' asignados a otro centro/revisión (no se trasladan)':''}</small></span></label>`).join('')||'<p>No hay registros disponibles en los módulos.</p>';
   $('inclusion-confirm').checked=false;$('inclusion-message').textContent='';
   $('include-and-continue').textContent=generateMode===null?'Incorporar seleccionados': 'Incorporar seleccionados y generar PDF';
   $('acta-only').hidden=generateMode===null;
@@ -21,6 +21,7 @@ function openInclusion(generateMode=null){
 }
 async function requestGeneration(partial){
   if(busy)return;
+  await refresh();invalidate();
   if(catalog.length&&!selectedRecords().length&&!selectedSystems().length){openInclusion(partial);return;}
   await build(partial);
 }
