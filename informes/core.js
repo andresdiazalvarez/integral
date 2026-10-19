@@ -54,7 +54,7 @@
     if(!draft.finalState)warnings.push('Estado final no verificado.');
     if(!draft.technicians)warnings.push('No se han identificado técnicos responsables.');
     if(draft.modules?.hidrantes)warnings.push('El módulo Hidrantes de origen conserva campos de extintores: verifica que sus datos correspondan a hidrantes.');
-    const candidates=new Map();records.forEach(r=>{const k=JSON.stringify([r.module,r.building,r.number,r.source.numeroSerie,r.location]);if(candidates.has(k))warnings.push('Posible equipo repetido: '+names[r.module]+' / '+r.building+' / '+r.number+'. Conservado para revisión.');candidates.set(k,true);if(r.client&&norm(r.client)!==norm(draft.sourceClient||draft.centerName)&&!(draft.aliases||[]).some(a=>norm(a)===norm(r.client)))warnings.push('Cliente de origen discordante: '+r.client+' ('+r.key+').');r.photos.forEach((p,i)=>{if(p&&!/^data:image\//.test(p)&&!/^blob:/.test(p))warnings.push('Referencia de foto sin imagen: '+r.key+' / foto '+(i+1));});});
+    const candidates=new Map();records.forEach(r=>{const k=JSON.stringify([r.module,r.building,r.number,r.source.numeroSerie,r.location]);if(candidates.has(k))warnings.push('Posible equipo repetido: '+names[r.module]+' / '+r.building+' / '+r.number+'. Conservado para revisión.');candidates.set(k,true);if((draft.sourceClient||draft.centerName)&&r.client&&norm(r.client)!==norm(draft.sourceClient||draft.centerName)&&!(draft.aliases||[]).some(a=>norm(a)===norm(r.client)))warnings.push('Cliente de origen discordante: '+r.client+'. Revisa las asignaciones.');r.photos.forEach((p,i)=>{if(p&&!/^data:image\//.test(p)&&!/^blob:/.test(p))warnings.push('Referencia de foto sin imagen: '+r.key+' / foto '+(i+1));});});
     if(pdfs.some(p=>p.historical))warnings.push('Hay páginas históricas: se identificarán como antecedentes sin alterar su contenido.');
     return {errors:[...new Set(errors)],warnings:[...new Set(warnings)]};
   }
@@ -66,6 +66,9 @@
     const photoPages=[];for(let i=0;i<photos.length;i+=2)photoPages.push(photos.slice(i,i+2));
     return {correctiveRecords,photoPages};
   }
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan};
+  function inclusionGroups(catalog,bindings,centerId,revisionId,draftId){
+    const groups=new Map();for(const r of catalog){const key=text(r.client).trim();if(!groups.has(key))groups.set(key,{client:key,available:[],conflicts:[]});const b=bindings[r.key];const ownDraft=draftId&&b?.draftId===draftId;const conflict=b&&!ownDraft&&(b.centerId!==centerId||b.revisionId!==revisionId);groups.get(key)[conflict?'conflicts':'available'].push(r.key);}return [...groups.values()];
+  }
+  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);
