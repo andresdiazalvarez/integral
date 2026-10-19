@@ -59,11 +59,12 @@
     return {errors:[...new Set(errors)],warnings:[...new Set(warnings)]};
   }
   function forExport(draft,partial=false){const d=JSON.parse(JSON.stringify(draft));d.partial=partial;if(partial){for(const key of ['centerName','revision','year','actaNumber','start','end','issued','author'])if(!text(d[key]).trim())d[key]='No informado';if(d.hours&&!d.hoursBasis)d.hoursBasis='Criterio no verificado';}return d;}
-  function equipmentPlan(module,records,issues,excludedPhotos=[]){
+  function photoLayout(value){const perPage=Number(value)===8?8:6;return {perPage,columns:2,rows:perPage/2};}
+  function equipmentPlan(module,records,issues,excludedPhotos=[],perPage=6){
     const correctiveRecords=records.map(record=>({...record,defects:issues===undefined?record.defects:issues.filter(i=>i.module===module&&i.key===record.key&&i.status!=='antecedente').map(i=>i.text)})).filter(r=>r.defects.length);
     const photoRecords=module==='correctivos'?correctiveRecords:records;
     const photos=photoRecords.flatMap(record=>record.photos.map((src,index)=>({record,src,index})).filter(p=>p.src&&!excludedPhotos.includes(record.key+':'+p.index)));
-    const photoPages=[];for(let i=0;i<photos.length;i+=2)photoPages.push(photos.slice(i,i+2));
+    const size=photoLayout(perPage).perPage;const photoPages=[];for(let i=0;i<photos.length;i+=size)photoPages.push(photos.slice(i,i+size));
     return {correctiveRecords,photoPages};
   }
   function inclusionGroups(catalog,bindings,centerId,revisionId,draftId){
@@ -92,6 +93,6 @@
     }
     return [...groups.values()].sort((a,b)=>a.order-b.order);
   }
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups};
+  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups,photoLayout};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -89,23 +89,27 @@ window.PCIPdf=(()=>{
     return pdf.output('arraybuffer');
   }
   async function equipment(d,module,records,excludedPhotos,issues){
-    const {correctiveRecords,photoPages}=PCI.equipmentPlan(module,records,issues,excludedPhotos);
+    const layout=PCI.photoLayout(d.photosPerPage);
+    const {correctiveRecords,photoPages}=PCI.equipmentPlan(module,records,issues,excludedPhotos,layout.perPage);
     const pdf=doc(),title='CORRECTIVOS DE '+PCI.names[module].toUpperCase();correctiveHeader(pdf,d,title);
     const groups=PCI.correctiveGroups(module,correctiveRecords);
     correctiveTables(pdf,d,module,groups,35,title);
     if(!groups.length)line(pdf,'No constan correctivos en los registros seleccionados.',16,41,10);
     // El anexo siempre empieza después de todos los datos, en página nueva.
-    for(const pair of photoPages){start(pdf,d,PCI.names[module].toUpperCase()+' · FOTOGRAFÍAS');
-      pdf.setFont('helvetica','normal');pdf.setFontSize(9);
-      const captions=pair.map(({record:r,index})=>[`Equipo ${r.number||'Sin número'} · Foto ${index+1}`,r.building||'Edificio no indicado',r.location||'Ubicación no indicada'].flatMap(t=>pdf.splitTextToSize(t,85)));
-      const photoTop=56+Math.max(4,...captions.map(lines=>lines.length))*4;
-      for(let i=0;i<pair.length;i++){
-        const {record:r,src,index}=pair[i],x=16+i*91;
-        const wrapped=captions[i];
-        if(wrapped.length>13)throw Error('Identificación demasiado extensa para el anexo fotográfico: '+r.key);
-        line(pdf,wrapped,x,54,9);
-        const placed=await image(pdf,src,x,photoTop,87,258-photoTop,'top');
-        pdf.setFontSize(6);const origin=pdf.splitTextToSize('Origen: '+r.key,87);if(origin.length>4)throw Error('Referencia de foto demasiado extensa: '+r.key);line(pdf,origin,x,placed.bottom+5,6);
+    for(const photos of photoPages){start(pdf,d,PCI.names[module].toUpperCase()+' · FOTOGRAFÍAS');
+      const gap=4,width=87,rowHeight=(226-(layout.rows-1)*gap)/layout.rows;
+      for(let row=0;row<layout.rows;row++){
+        const items=photos.slice(row*2,row*2+2);if(!items.length)break;
+        pdf.setFont('helvetica','normal');pdf.setFontSize(7);
+        const captions=items.map(({record:r,index})=>[`Equipo ${r.number||'Sin número'} · Foto ${index+1}`,[r.building||'Edificio no indicado',r.location].filter(Boolean).join(' / ')].flatMap(t=>pdf.splitTextToSize(t,width)));
+        const captionHeight=Math.max(...captions.map(lines=>lines.length))*2.85+3;
+        if(captionHeight>rowHeight*.45)throw Error('Identificación demasiado extensa para la cuadrícula de fotos: '+items[0].record.key);
+        const top=49+row*(rowHeight+gap);
+        for(let col=0;col<items.length;col++){
+          const {src}=items[col],x=16+col*(width+gap);
+          line(pdf,captions[col],x,top+2.5,7);
+          await image(pdf,src,x,top+captionHeight,width,rowHeight-captionHeight,'center');
+        }
       }
     }
     return pdf.output('arraybuffer');
