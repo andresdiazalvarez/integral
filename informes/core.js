@@ -103,6 +103,11 @@
     if(hasCurrent)result.push({...current,id:current.editingId||'__pci_current__',sourceKind:'current',sourceEntries:entries,systems:[],replacesSavedId:current.editingId||null});
     return result;
   }
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups,photoLayout,systemReportSources};
+  function pdfBytes(value){
+    if(ArrayBuffer.isView(value))return new Uint8Array(value.buffer,value.byteOffset,value.byteLength);
+    if(Object.prototype.toString.call(value)==='[object ArrayBuffer]')return new Uint8Array(value);
+    throw Error('No se pudieron leer los bytes del PDF que se incorpora al informe.');
+  }
+  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups,photoLayout,systemReportSources,pdfBytes};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);
