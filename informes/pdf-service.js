@@ -61,14 +61,8 @@ window.PCIPdf=(()=>{
     const pdf=doc(),ink=[30,91,151],left=14.5,width=181;
     const value=PCI.reportText;
     function header(){
-      if(window.PCIActaBrand)pdf.addImage(window.PCIActaBrand,'JPEG',left,13,16,16);
-      pdf.setTextColor(...ink);pdf.setFont('helvetica','bold');pdf.setFontSize(10);pdf.text('SYCOGROUP',left,33);
-      pdf.setFontSize(4);pdf.text('www.sycosl.com',left,36);
-      pdf.setFontSize(10);pdf.text('ACTA DE MANTENIMIENTO',195.5,23,{align:'right'});
-      pdf.setFont('times','normal');pdf.setTextColor(75);pdf.setFontSize(7);pdf.text('Instalaciones Protección Contra Incendios',195.5,27,{align:'right'});
-      pdf.text('UNE 23580-1:2022 | RD 513/2017',195.5,30,{align:'right'});
+      if(window.PCIActaBrand)pdf.addImage(window.PCIActaBrand,'PNG',left,7,width,width*117/624);
       pdf.setDrawColor(...ink);pdf.setLineWidth(.4);pdf.line(left,43,195.5,43);pdf.setLineWidth(.2);pdf.line(left,280,195.5,280);
-
     }
     function page(){pdf.addPage();header();}
     function section(text,y){pdf.setFillColor(...ink);pdf.rect(left,y,width,4.4,'F');pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor(255);pdf.text(text,left+2,y+3.2);return y+9;}
