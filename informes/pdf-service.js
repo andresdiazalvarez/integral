@@ -58,36 +58,70 @@ window.PCIPdf=(()=>{
     return {bottom:top+ih};
   }
   async function acta(d,signatures){
-    const pdf=doc();let y=start(pdf,d,'ACTA DE MANTENIMIENTO',true);
-    y=fields(pdf,[['Número de acta',d.actaNumber],['Contrato / referencia',d.contract],['Periodicidad',d.periodicity],['Fecha de emisión',d.issued]],y,d,'ACTA DE MANTENIMIENTO');
-    y=band(pdf,'1. NOTIFICACIONES PREVIAS',y);
-    y=fields(pdf,[['Comienzo de trabajos notificado',d.notified||'No verificado'],['Aseguradora informada',d.insurer||'No verificado']],y,d,'ACTA DE MANTENIMIENTO');
-    y=band(pdf,'2. PROPIEDAD / USUARIO / TITULAR',y);
-    y=fields(pdf,[['Nombre / razón social',d.holderName],['CIF / NIF',d.holderTax],['Domicilio',d.holderAddress],['Ciudad / provincia',d.holderCity],['Representante',d.representative],['Responsable presente',d.presentResponsible],['Contacto',d.holderContact]],y,d,'ACTA DE MANTENIMIENTO');
-    y=band(pdf,'3. EMPRESA MANTENEDORA Y PERSONAL',y);
-    fields(pdf,[['Denominación social',d.companyName],['CIF',d.companyTax],['Registro / habilitación',d.companyRegistration],['Dirección / teléfono',d.companyAddress],['Correo electrónico',d.companyEmail],['Especialidades habilitadas',d.companySpecialties],['Técnicos / empresa / acreditación / función',d.technicians]],y,d,'ACTA DE MANTENIMIENTO');
-    y=start(pdf,d,'ACTA DE MANTENIMIENTO');y=band(pdf,'4. DATOS DE LA INSTALACIÓN',y);
-    y=fields(pdf,[['Nombre oficial',d.installationName||d.centerName],['Edificio / localización',d.installationBuilding],['Dirección',d.installationAddress],['Fecha última revisión',d.lastReview],['Revisión actual',[d.revision,d.year].filter(Boolean).join(' · ')],['Revisiones trimestrales por',d.quarterlyBy],['Mantenimiento anterior / habilitación',d.previousCompany]],y,d,'ACTA DE MANTENIMIENTO');
-    y=band(pdf,'5. VERIFICACIONES GENERALES',y);
-    table(pdf,['Verificación','Resultado','Comentario'],checks.map((text,i)=>[text,PCI.reportText(d.checks?.[i]?.value),PCI.reportText(d.checks?.[i]?.comment)]).filter(row=>row[1]||row[2]),y,{columnStyles:{0:{cellWidth:95},1:{cellWidth:27}},draft:d,title:'ACTA DE MANTENIMIENTO'});
-    y=start(pdf,d,'ACTA DE MANTENIMIENTO');y=band(pdf,'6. INSTALACIONES Y EQUIPOS MANTENIDOS',y);
-    const installationRows=[];for(let i=0;i<installations.length;i+=2){const a=installations[i],b=installations[i+1];installationRows.push([`${d.installations?.includes(a)?'[X]':'[ ]'} ${a}`,b?`${d.installations?.includes(b)?'[X]':'[ ]'} ${b}`:'']);}
-    y=table(pdf,['Instalación / equipo','Instalación / equipo'],installationRows,y,{columnStyles:{0:{cellWidth:89},1:{cellWidth:89}},draft:d,title:'ACTA DE MANTENIMIENTO'});
-    y=band(pdf,'7. TIEMPOS DE EJECUCIÓN',y);
-    fields(pdf,[['Inicio de trabajos',d.start+' '+(d.startTime||'')],['Fin de trabajos',d.end+' '+(d.endTime||'')],['Nº de operarios',d.operators],['Horas de revisión',d.hours?[d.hours,d.hoursBasis].filter(Boolean).join(' · '):'']],y,d,'ACTA DE MANTENIMIENTO');
-    y=start(pdf,d,'ACTA DE MANTENIMIENTO');y=band(pdf,'8. OBSERVACIONES Y ESTADO FINAL',y);
-    y=fields(pdf,[['Correctivos urgentes / observaciones',d.urgentNotes||'Ver relación final de correctivos.'],['Estado tras las pruebas',d.finalState||'No verificado'],['Observaciones técnicas',d.technicalNotes]],y,d,'ACTA DE MANTENIMIENTO');
-    if(y>185)y=start(pdf,d,'ACTA DE MANTENIMIENTO');
-    y=band(pdf,'9. FIRMAS',y);
-    table(pdf,['Técnico cualificado','Propiedad'],[[PCI.reportText(d.techSigner),PCI.reportText(d.ownerSigner)],[d.techSignerCompany?'Empresa: '+d.techSignerCompany:'',d.ownerRole?'Cargo: '+d.ownerRole:'']],y,{columnStyles:{0:{cellWidth:89}},draft:d,title:'ACTA DE MANTENIMIENTO'});
-    y=pdf.lastAutoTable.finalY+3;pdf.setDrawColor(180);pdf.rect(16,y,86,35);pdf.rect(108,y,86,35);
-    if(signatures.tech)await image(pdf,signatures.tech,18,y+2,82,31);
-    if(signatures.owner)await image(pdf,signatures.owner,110,y+2,82,31);
-    y+=42;line(pdf,'Las imágenes de firma no constituyen firma digital certificada.',16,y,8);
-    if(y+35>275)y=start(pdf,d,'ACTA DE MANTENIMIENTO');else y+=8;
-    y=band(pdf,'10. ANEXOS',y);fields(pdf,[['Documentación adjunta','Equipos, fotografías, sistemas y relación final de correctivos, según selección del expediente.']],y,d,'ACTA DE MANTENIMIENTO');
+    const pdf=doc(),ink=[30,91,151],left=14.5,width=181;
+    const value=PCI.reportText;
+    function header(){
+      if(window.PCIActaBrand)pdf.addImage(window.PCIActaBrand,'JPEG',left,13,16,16);
+      pdf.setTextColor(...ink);pdf.setFont('helvetica','bold');pdf.setFontSize(10);pdf.text('SYCOGROUP',left,33);
+      pdf.setFontSize(4);pdf.text('www.sycosl.com',left,36);
+      pdf.setFontSize(10);pdf.text('ACTA DE MANTENIMIENTO',195.5,23,{align:'right'});
+      pdf.setFont('times','normal');pdf.setTextColor(75);pdf.setFontSize(7);pdf.text('Instalaciones Protección Contra Incendios',195.5,27,{align:'right'});
+      pdf.text('UNE 23580-1:2022 | RD 513/2017',195.5,30,{align:'right'});
+      pdf.setDrawColor(...ink);pdf.setLineWidth(.4);pdf.line(left,43,195.5,43);pdf.setLineWidth(.2);pdf.line(left,280,195.5,280);
+
+    }
+    function page(){pdf.addPage();header();}
+    function section(text,y){pdf.setFillColor(...ink);pdf.rect(left,y,width,4.4,'F');pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor(255);pdf.text(text,left+2,y+3.2);return y+9;}
+    function grid(headings,rows,y,options={}){
+      if(!rows.length)return y;
+      pdf.autoTable({startY:y,head:headings.length?[headings]:undefined,body:rows,theme:'grid',margin:{left,right:14.5,top:52,bottom:22},
+        styles:{font:'times',fontSize:8,textColor:40,cellPadding:2,lineColor:[180,180,180],lineWidth:.15,overflow:'linebreak'},
+        headStyles:{font:'helvetica',fontSize:7.5,fontStyle:'bold',fillColor:ink,textColor:255},
+        showHead:'everyPage',rowPageBreak:'avoid',willDrawPage:info=>{if(info.pageNumber>1)header();},...options});return pdf.lastAutoTable.finalY+5;
+    }
+    function detail(rows,y){for(const [label,raw] of rows){const text=value(raw);if(!text)continue;const lines=pdf.splitTextToSize(text,width-52);const h=Math.max(6,lines.length*3.5+2);if(y+h>267){page();y=53;}pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(20);pdf.text(label,left,y);pdf.setFont('helvetica','normal');pdf.text(lines,left+49,y);y+=h;}return y+3;}
+    const pe=({Trimestral:'T',Semestral:'S',Anual:'A',Trienal:'TR',Quinquenal:'Q',Decenal:'D'})[d.periodicity]||value(d.periodicity),review=[d.revision,d.year].filter(Boolean).join(' · ');
+    header();let y=49;
+    const reference=[d.actaNumber?'Ref: ACTA Nº '+d.actaNumber:'',d.code,d.centerName,d.issued?'Fecha: '+d.issued:'',pe?'PE: '+pe:''].filter(Boolean).join('   |   ');
+    if(reference){pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.setTextColor(65);const lines=pdf.splitTextToSize(reference,width);pdf.text(lines,left,y);y+=lines.length*3.5+3;}
+    y=section('1. NOTIFICACIONES PREVIAS',y);
+    const notifications=[['¿Ha notificado el mantenedor el comienzo de trabajos?',value(d.notified)],['¿Se ha informado a la compañía aseguradora?',value(d.insurer)]].filter(r=>r[1]);
+    y=grid([],notifications,y,{columnStyles:{0:{cellWidth:145},1:{cellWidth:36}}});
+    y=section('2. DATOS DE LA PROPIEDAD / USUARIO / TITULAR',y+3);
+    y=detail([['Nombre / razón social:',d.holderName],['CIF / NIF:',d.holderTax],['Localización / Edificio:',d.installationBuilding||d.centerName],['Dirección:',d.holderAddress],['Ciudad:',d.holderCity],['Representante / Responsable:',d.representative],['Responsable mantenimiento:',d.presentResponsible],['Contacto:',d.holderContact]],y+2);
+    y=section('3. DATOS DE LA EMPRESA MANTENEDORA (RD 513/2017)',y+3);
+    y=detail([['Nombre:',d.companyName],['CIF:',d.companyTax],['Nº Registro / habilitación:',d.companyRegistration],['Dirección / teléfono:',d.companyAddress],['Correo-e:',d.companyEmail]],y+2);
+    if(value(d.companySpecialties)){pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(...ink);pdf.text('Instalaciones para las que está habilitada:',left,y);y+=4;y=grid([],[[d.companySpecialties]],y);}
+    if(value(d.technicians)){pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(...ink);pdf.text('Operario(s) cualificado(s) responsable(s):',left,y+2);y=grid(['Nombre y apellidos / Compañía / Nº Certificado'],[[d.technicians]],y+7);}
+    page();y=section('4. DATOS DE LA INSTALACIÓN',51);
+    y=detail([['Localización / Edificio:',d.installationBuilding||d.installationName||d.centerName],['Dirección:',d.installationAddress],['Fecha última revisión:',d.lastReview],['Revisión:',review],['Revisiones trimestrales por:',d.quarterlyBy]],y+2);
+    y=section('5. DATOS GENERALES - VERIFICACIONES',y+2);
+    const verifications=checks.map((text,i)=>({text,...d.checks?.[i]})).filter(r=>value(r.value)||value(r.comment));
+    y=grid(['PE','VERIFICACIÓN','SÍ','NO','N/A'],verifications.map(r=>[pe,r.text+(value(r.comment)?'\n'+r.comment:''),r.value==='Sí'?'X':'',r.value==='No'?'X':'',r.value==='N/A'?'X':'']),y,{columnStyles:{0:{cellWidth:13},1:{cellWidth:130},2:{cellWidth:13},3:{cellWidth:13},4:{cellWidth:12}},alternateRowStyles:{fillColor:[241,241,241]}});
+    detail([['Empresa último mantenimiento:',d.previousCompany]],y+8);
+    page();y=section('6. INSTALACIONES Y EQUIPOS SOMETIDOS A MANTENIMIENTO',51);
+    const pairs=[['Detección y alarma','Abastecimiento de agua'],['Reserva de agua','Sala de bombas / tuberías / válvulas'],['Equipos de bombeo','Hidrantes'],['Extintores','BIE 25 mm'],['BIE 45 mm','BIE alta presión'],['Columna seca','Rociadores húmedos'],['Rociadores secos','Rociadores de preacción'],['Rociadores de diluvio','Agua nebulizada'],['Espuma física','Polvo'],['Agentes gaseosos','Aerosoles condensados'],['Control de humos y calor','Otros / innovadores'],['Señalización luminiscente','']];
+    y=grid([],pairs.map(pair=>pair.flatMap(label=>[d.installations?.includes(label)?'X':'',label])),y,{styles:{font:'times',fontSize:8,textColor:20,lineColor:0,lineWidth:.2,cellPadding:2.3,minCellHeight:9},columnStyles:{0:{cellWidth:12},1:{cellWidth:78.5},2:{cellWidth:12},3:{cellWidth:78.5}}});
+    y=section('7. TIEMPOS DE EJECUCIÓN',y+12);
+    grid(['Fecha inicio','Fecha final','Nº operarios','Horas revisión'],[[[d.start,d.startTime].filter(Boolean).join(' '),[d.end,d.endTime].filter(Boolean).join(' '),d.operators||'',[d.hours,d.hours?d.hoursBasis:''].filter(Boolean).join(' · ')]],y,{columnStyles:{0:{cellWidth:45.25},1:{cellWidth:45.25},2:{cellWidth:45.25},3:{cellWidth:45.25}},bodyStyles:{minCellHeight:12,fillColor:[244,244,244]}});
+    page();y=section('8. CORRECTIVOS URGENTES / OBSERVACIONES Y DEFICIENCIAS',51);
+    const notes=[d.urgentNotes,d.technicalNotes].map(value).filter(Boolean).join('\n\n');
+    y=grid(['CORRECTIVOS URGENTES / OBSERVACIONES / DEFICIENCIAS'],[[notes]],y,{bodyStyles:{minCellHeight:67}});
+    if(value(d.finalState))y=grid([],[["Tras las pruebas realizadas el sistema quedó:\n"+d.finalState]],y,{bodyStyles:{fillColor:[215,230,242],font:'helvetica',fontStyle:'bold',minCellHeight:17}});
+    if(y>174){page();y=53;}
+    pdf.setFont('helvetica','italic');pdf.setFontSize(7);pdf.setTextColor(100);pdf.text('Verificar las operaciones específicas del fabricante no recogidas en el acta de mantenimiento.',left,y+2);y+=11;
+    y=section('9. FIRMAS',y);
+    const signRows=[[ [d.techSigner,d.techSignerCompany].map(value).filter(Boolean).join('\n'),[d.ownerSigner,d.ownerRole].map(value).filter(Boolean).join('\n') ]];
+    const signTop=y+7;
+    y=grid(['Firma del técnico cualificado','Firma de la propiedad'],signRows,y,{headStyles:{fillColor:[215,230,242],textColor:ink,font:'helvetica',fontStyle:'bold'},columnStyles:{0:{cellWidth:90.5},1:{cellWidth:90.5}},bodyStyles:{minCellHeight:37,valign:'bottom'}});
+    if(signatures.tech)await image(pdf,signatures.tech,left+3,signTop,84,21);
+    if(signatures.owner)await image(pdf,signatures.owner,left+93.5,signTop,84,21);
+    pdf.setFont('helvetica','italic');pdf.setFontSize(6.5);pdf.setTextColor(100);const notice='La Propiedad y su representante designado tienen conocimiento de la responsabilidad de tomar las acciones correctoras pertinentes para que las instalaciones estén en condiciones de funcionamiento.';pdf.text(pdf.splitTextToSize(notice,width),left,y+2);y+=14;
+    if(y>261){page();y=53;}section('10. ANEXOS. INFORME CHECK LIST EQUIPOS.',y);
+    for(let n=1;n<=pdf.getNumberOfPages();n++){pdf.setPage(n);pdf.setFillColor(255);pdf.rect(0,0,210,42,'F');header();}
     return pdf.output('arraybuffer');
   }
+
   async function equipment(d,module,records,excludedPhotos,issues){
     const layout=PCI.photoLayout(d.photosPerPage);
     const {correctiveRecords,photoPages}=PCI.equipmentPlan(module,records,issues,excludedPhotos,layout.perPage);
