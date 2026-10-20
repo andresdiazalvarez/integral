@@ -799,8 +799,7 @@
         <div class="toolbar">
           <h2 id="homeTitle">Informes grabados</h2>
           <div class="home-create-actions">
-            <button id="newReportBtn" class="btn pink" type="button">Crear nuevo informe</button>
-            <button id="newSystemBtn" class="btn blue new-system-launch" type="button">SISTEMA NUEVO</button>
+            <button id="newSystemBtn" class="btn blue new-system-launch" type="button">PREPARAR INFORME</button>
           </div>
         </div>
         <div id="savedReports" class="saved-list"></div>
@@ -4217,7 +4216,6 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       renderListing();
       showScreen("listingScreen");
     });
-    document.getElementById("newReportBtn").addEventListener("click", startNewReport);
     document.getElementById("newSystemBtn").addEventListener("click", startNewSystemReport);
     document.getElementById("backFromNewReportBtn").addEventListener("click", () => {
       renderHome();
