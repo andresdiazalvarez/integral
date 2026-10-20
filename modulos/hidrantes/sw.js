@@ -1,4 +1,4 @@
-const CACHE_NAME = "integral-hidrantes-v1";
+const CACHE_NAME = "integral-hidrantes-v2";
 const ASSETS = [
   "./",
   "./index.html",

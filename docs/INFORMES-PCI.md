@@ -2,7 +2,7 @@
 
 ## Diagnóstico e integración
 
-Correctivos utiliza IndexedDB `voz-db-v1`, BIE `bie-db-v1` e Hidrantes `integral-hidrantes-db-v1`. Los tres guardan el array original en `state/records`, con ID interno, datos de equipo, defectos, fotos como data URL y el campo Visto. No se presupone que Visto certifique ensayos. Hidrantes sigue siendo una adaptación pendiente desde extintores.
+Correctivos utiliza IndexedDB `voz-db-v1`, BIE `bie-db-v1` e Hidrantes `hidrantes-correctivos-db-v1`. Los tres guardan el array original en `state/records`, con ID interno, datos de equipo, defectos, fotos como data URL y el campo Visto. No se presupone que Visto certifique ensayos. Hidrantes distingue Hidrante, Armario y Columna seca mediante el modelo del equipo. La base antigua integral-hidrantes-db-v1 se conserva sin modificar.
 
 Sistemas utiliza `sistemas-informes-db`, almacén `state`, clave `sistemas.informes.v2`, con respaldo en localStorage. Guarda informes estructurados (`savedReports`, `sourceEntries`, secciones, casillas y fotos); no guarda normalmente el binario PDF. La integración añade un puente de solo lectura que llama a `buildFullHtml` y a la generación PDF existente, devolviendo un Blob sin descargar ni volver a guardar el informe. No cambia las reglas de mantenimiento.
 

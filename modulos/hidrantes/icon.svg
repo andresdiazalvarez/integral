@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#8a1538"/><path d="M25 15h16v7H25zM21 24h24v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5z" fill="#ffffff"/><path d="M28 10h10v6H28zm14 8h8l4 7h-6l-3-3h-3z" fill="#ffffff"/><path d="M29 31c8 5 10 10 2 17 1-5-6-7-2-17z" fill="#8a1538"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="10" y1="6" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb347"/>
+      <stop offset=".5" stop-color="#ff7900"/>
+      <stop offset="1" stop-color="#df5600"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#g)"/>
+  <path d="M25 13h14v7H25zM22 22h20v8H22zM25 30h14v22H25z" fill="#fff7ed"/>
+  <path d="M18 34h28v8H18zM12 35h8v6h-8zM44 35h8v6h-8z" fill="#fff7ed"/>
+  <path d="M27 52h10v5H27zM29 8h6v6h-6z" fill="#fff7ed"/>
+  <path d="M29 34h6v14h-6z" fill="#ff7900"/>
+</svg>

@@ -1,11 +1,11 @@
 :root {
-  --red: #8a1538;
-  --red-dark: #6f102d;
-  --paper: #fff5f7;
+  --red: #ff7900;
+  --red-dark: #df5600;
+  --paper: #fff7ed;
   --card: #ffffff;
-  --ink: #2f111b;
-  --muted: #7a5d66;
-  --line: #ead1d9;
+  --ink: #2b1606;
+  --muted: #7b4a21;
+  --line: #ffd0a3;
 }
 
 * { box-sizing: border-box; }
@@ -15,12 +15,13 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--ink);
   background:
-    linear-gradient(135deg, #fff5f7 0%, #f7dce5 45%, #ead1d9 100%);
+    radial-gradient(circle at 18% 8%, rgba(255, 213, 128, .95) 0 18%, transparent 38%),
+    linear-gradient(135deg, #fff7ed 0%, #ffb347 42%, #ff7900 78%, #df5600 100%);
   min-height: 100vh;
 }
 
 .topbar {
-  background: #fff;
+  background: rgba(255, 255, 255, .92);
   border-top: 42px solid var(--red);
   border-bottom: 1px solid var(--line);
   padding: 18px 28px;
@@ -68,7 +69,7 @@ h3 { margin: 0 0 14px; font-size: 22px; }
 }
 
 .card {
-  background: var(--card);
+  background: rgba(255, 255, 255, .94);
   border: 1px solid var(--line);
   border-radius: 24px;
   padding: 24px;
@@ -87,7 +88,7 @@ h3 { margin: 0 0 14px; font-size: 22px; }
 }
 
 .stats div {
-  background: #fae8ed;
+  background: #fff0db;
   border-radius: 18px;
   padding: 16px;
 }
@@ -100,6 +101,43 @@ h3 { margin: 0 0 14px; font-size: 22px; }
 
 .stats span { color: var(--muted); font-weight: 700; }
 .importStatus { margin: 10px 0 0; color: var(--muted); font-weight: 800; line-height: 1.4; }
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.typeChoice {
+  min-height: 176px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  border: 1px solid rgba(255, 121, 0, .35);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, .94), rgba(255, 240, 219, .94)),
+    linear-gradient(135deg, #ffb347, #ff7900);
+  color: var(--ink);
+  box-shadow: 0 18px 40px rgba(155, 72, 0, .18);
+}
+
+.typeChoice span {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffb347, #ff7900 55%, #df5600);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.typeChoice strong {
+  font-size: 24px;
+}
 
 .appError {
   background: #fff1f1;
@@ -122,12 +160,12 @@ button {
 
 .primary {
   width: 100%;
-  background: var(--red);
+  background: linear-gradient(135deg, #ff9f1c, #ff7900 55%, #df5600);
   color: #ffffff;
   margin-top: 10px;
 }
 
-.primary:hover { background: var(--red-dark); }
+.primary:hover { background: linear-gradient(135deg, #ffb347, #ff7900 45%, #c94b00); }
 
 .secondary {
   width: 100%;
@@ -246,7 +284,7 @@ textarea { resize: vertical; }
 
 .iconTextButton {
   width: 100%;
-  background: var(--red);
+  background: linear-gradient(135deg, #ff9f1c, #ff7900 55%, #df5600);
   color: #fff;
   border-radius: 14px;
   padding: 0 12px;
@@ -333,7 +371,7 @@ textarea { resize: vertical; }
 }
 
 .previewGroup strong {
-  color: #8a1538;
+  color: var(--red-dark);
 }
 
 .previewGroup span,
@@ -387,8 +425,8 @@ th, td {
 }
 
 th {
-  background: #fae8ed;
-  color: #4c3b69;
+  background: #fff0db;
+  color: #5a2b00;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: .04em;
@@ -421,7 +459,7 @@ th {
 .voiceBlock {
   display: grid;
   gap: 14px;
-  background: #fae8ed;
+  background: #fff0db;
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 16px;
@@ -447,7 +485,7 @@ th {
 
 .voiceListening {
   border-color: var(--red-dark);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, .22);
+  box-shadow: 0 0 0 3px rgba(255, 121, 0, .24);
 }
 
 label {
@@ -468,7 +506,7 @@ label {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fae8ed;
+  background: #fff0db;
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 12px;
@@ -498,8 +536,8 @@ label {
   place-items: center;
   border: 2px dashed #cfc7bf;
   border-radius: 20px;
-  background: #fae8ed;
-  color: #6d6380;
+  background: #fff0db;
+  color: #7b4a21;
   cursor: pointer;
   overflow: hidden;
   padding: 0;
@@ -533,7 +571,7 @@ label {
   .lastNumberBox {
     text-align: left;
   }
-  .stats, .compactFilters, .listActions, .reportRecord, .checks, .actions, .photoGrid, .voiceActions, .fieldWithButton {
+  .stats, .typeGrid, .compactFilters, .listActions, .reportRecord, .checks, .actions, .photoGrid, .voiceActions, .fieldWithButton {
     grid-template-columns: 1fr;
   }
 }

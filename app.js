@@ -8,9 +8,9 @@ function navigate(){
   document.title=active?modules[key]+' · INTEGRAL':'INTEGRAL · Mantenimiento PCI';
   if(!active)return;
   document.getElementById('module-title').textContent=modules[key];
-  document.getElementById('module-note').hidden=key!=='hidrantes';
+  document.getElementById('module-note').hidden=true;
   if(!document.querySelector('iframe[data-module="'+key+'"]')){
-    const frame=document.createElement('iframe');frame.dataset.module=key;frame.title=modules[key];frame.src=key==='informes'?'./informes/index.html?v=9':'./modulos/'+key+'/index.html';frame.allow='camera; microphone; fullscreen';document.getElementById('frames').append(frame);
+    const frame=document.createElement('iframe');frame.dataset.module=key;frame.title=modules[key];frame.src=key==='informes'?'./informes/index.html?v=9':'./modulos/'+key+'/index.html?v=12';frame.allow='camera; microphone; fullscreen';document.getElementById('frames').append(frame);
   }else if(key==='informes'){document.querySelector('iframe[data-module="informes"]').contentWindow.postMessage({type:'integral:refresh-sources'},location.origin);}
 }
 function connection(){document.getElementById('connection').textContent=navigator.onLine?'Con conexión':'Sin conexión';}

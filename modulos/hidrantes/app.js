@@ -1,24 +1,43 @@
-const DB_NAME = "integral-hidrantes-db-v1";
+const DB_NAME = "hidrantes-correctivos-db-v1";
 const DB_VERSION = 1;
 const STORE_NAME = "state";
-const LAST_NUMBER_KEY = "integral-hidrantes-last-number-used";
+const LAST_NUMBER_KEY = "hidrantes-last-number-used";
 const CHECKLIST_TEMPLATE_URL = "./checklist-template.xlsx";
 
-const defectOptions = [
-  "Extintor caducado.",
-  "Hay un obstáculo.",
-  "Extintor descargado.",
-  "Extintor sin presión.",
-  "Extintor en el suelo.",
-  "Cristal armario roto o sin cristal.",
-  "Sin señal.",
-  "Señal caducada.",
-  "Extintor en mal estado.",
-];
-
-const reportDefectLabels = {
-  "Cristal armario roto o sin cristal.": "Cristal del extintor ausente o roto.",
+const DEFECTS_BY_TYPE = {
+  hidrante: [
+    "No abre llave.",
+    "Faltan racor.",
+    "Falta tapón.",
+    "Falta señal.",
+    "En mal estado.",
+  ],
+  armario: [
+    "Armario en mal estado.",
+    "Armario no abre.",
+    "Falta llave hidrante.",
+    "Falta mangueras 45.",
+    "Falta mangueras 70.",
+    "Falta racores 45.",
+    "Falta racores 70.",
+    "Falta lanzas 45.",
+    "Falta lanzas 70.",
+    "Falta derivación.",
+  ],
+  columnaSeca: [
+    "Armario en mal estado.",
+    "Armario no abre.",
+    "Llave no abre.",
+    "Falta racores.",
+  ],
 };
+const EQUIPMENT_TYPES = {
+  hidrante: "Hidrante",
+  armario: "Armario",
+  columnaSeca: "Columna seca",
+};
+const defectOptions = [...new Set([...DEFECTS_BY_TYPE.hidrante, ...DEFECTS_BY_TYPE.armario, ...DEFECTS_BY_TYPE.columnaSeca])];
+const reportDefectLabels = {};
 
 const fields = [
   "cliente",
@@ -46,6 +65,7 @@ let serieVoiceRecognition = null;
 let serieVoiceActive = false;
 let serieVoiceParts = [];
 let serieVoiceDraft = "";
+let currentEquipmentType = "";
 
 const $ = (id) => document.getElementById(id);
 
@@ -73,7 +93,7 @@ function cleanRecord(record = {}) {
     edificio: safeText(record.edificio ?? record.edificioCodigo),
     cantidad: safeText(record.cantidad),
     ubicacion: safeText(record.ubicacion),
-    modelo: safeText(record.modelo),
+    modelo: normalizeEquipmentType(record.modelo || record.tipo || record.tipoEquipo || currentEquipmentLabel()),
     numeroSerie: safeText(record.numeroSerie),
     fechaFabricacion: safeText(record.fechaFabricacion),
     fechaProximoRetimbrado: safeText(record.fechaProximoRetimbrado),
@@ -92,8 +112,9 @@ function normalizeKeyPart(value) {
 
 function recordKey(record) {
   return [
+    normalizeKeyPart(record.modelo),
     normalizeKeyPart(record.cantidad),
-    normalizeKeyPart(record.numeroSerie),
+    normalizeKeyPart(record.edificio),
     normalizeKeyPart(record.ubicacion),
   ].join("|");
 }
@@ -137,12 +158,63 @@ function truthyExcelValue(value) {
   return ["si", "x", "true", "1", "ok", "visto"].includes(text);
 }
 
+function normalizeEquipmentType(value) {
+  const key = normalizeHeader(value);
+  if (key.includes("columnaseca") || key.includes("columna")) return "Columna seca";
+  if (key.includes("armario")) return "Armario";
+  return "Hidrante";
+}
+
+function equipmentTypeKey(recordOrValue) {
+  const value = typeof recordOrValue === "object" ? recordOrValue?.modelo : recordOrValue;
+  const type = normalizeEquipmentType(value);
+  if (type === "Columna seca") return "columnaSeca";
+  return type.toLowerCase();
+}
+
+function currentEquipmentLabel() {
+  return EQUIPMENT_TYPES[currentEquipmentType] || "Hidrante";
+}
+
+function currentRecords() {
+  if (!currentEquipmentType) return records;
+  return records.filter((record) => equipmentTypeKey(record) === currentEquipmentType);
+}
+
+function selectEquipmentType(type) {
+  currentEquipmentType = type;
+  const label = currentEquipmentLabel();
+  $("currentTypeTitle").textContent = label;
+  $("currentTypeSubtitle").textContent = `Listado, fotos, importación y correctivos de ${label.toLowerCase()}.`;
+  $("formTitle").textContent = `Editar ${label.toLowerCase()}`;
+  updateStats();
+  showView("home");
+}
+
 function normalizeDefectName(value) {
   const text = safeText(value).trim();
   if (!text || text === "-") return "";
   const aliases = new Map([
-    ["cristaldelextintorausenteoroto", "Cristal armario roto o sin cristal."],
-    ["cristalarmariorotoosincristal", "Cristal armario roto o sin cristal."],
+    ["noabrellave", "No abre llave."],
+    ["faltanracor", "Faltan racor."],
+    ["faltanracores", "Faltan racor."],
+    ["faltatapon", "Falta tapón."],
+    ["faltasenal", "Falta señal."],
+    ["sinsenal", "Falta señal."],
+    ["enmalestado", "En mal estado."],
+    ["malestado", "En mal estado."],
+    ["armarioenmalestado", "Armario en mal estado."],
+    ["armarionoabre", "Armario no abre."],
+    ["faltallavehidrante", "Falta llave hidrante."],
+    ["faltamangueras45", "Falta mangueras 45."],
+    ["faltamangueras70", "Falta mangueras 70."],
+    ["faltaracores45", "Falta racores 45."],
+    ["faltaracores70", "Falta racores 70."],
+    ["faltalanzas45", "Falta lanzas 45."],
+    ["faltalanzas70", "Falta lanzas 70."],
+    ["faltaderivacion", "Falta derivación."],
+    ["llavenoabre", "Llave no abre."],
+    ["faltaracores", "Falta racores."],
     ...defectOptions.map((defect) => [normalizeHeader(defect), defect]),
   ]);
   return aliases.get(normalizeHeader(text)) || text;
@@ -158,16 +230,7 @@ function splitImportedDefects(value) {
 function importedDefects(rowValues, headerMap) {
   const defects = splitImportedDefects(importedValue(rowValues, headerMap, ["defectosencontrados", "defectos"], 0));
   const flagColumns = [
-    ["extintorcaducado", "Extintor caducado."],
-    ["hayunobstaculo", "Hay un obstáculo."],
-    ["extintordescargado", "Extintor descargado."],
-    ["extintorsinpresion", "Extintor sin presión."],
-    ["extintorenelsuelo", "Extintor en el suelo."],
-    ["cristalarmariorotoosincristal", "Cristal armario roto o sin cristal."],
-    ["cristaldelextintorausenteoroto", "Cristal armario roto o sin cristal."],
-    ["sinsenal", "Sin señal."],
-    ["senalcaducada", "Señal caducada."],
-    ["extintorenmalestado", "Extintor en mal estado."],
+    ...defectOptions.map((defect) => [normalizeHeader(defect), defect]),
   ];
   for (const [key, defect] of flagColumns) {
     const col = headerMap[key];
@@ -181,12 +244,12 @@ function rowToImportedRecord(rowValues, index, headerMap = {}) {
     id: `import-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
     cliente: importedValue(rowValues, headerMap, ["cliente"], 1),
     edificio: importedValue(rowValues, headerMap, ["edificio"], 2),
-    cantidad: importedValue(rowValues, headerMap, ["numerosyco", "numero", "num"], 3),
-    ubicacion: importedValue(rowValues, headerMap, ["ubicacion"], 4),
-    modelo: importedValue(rowValues, headerMap, ["modelo"], 5),
-    numeroSerie: importedValue(rowValues, headerMap, ["noserie", "numeroserie", "serie"], 6),
-    fechaFabricacion: importedValue(rowValues, headerMap, ["fechaanofabricacion", "fechafabricacion", "fabricacion"], 7),
-    fechaProximoRetimbrado: importedValue(rowValues, headerMap, ["fecharetimbrado", "retimbrado"], 8),
+    modelo: importedValue(rowValues, headerMap, ["tipoequipo", "tipo", "modelo"], 3),
+    cantidad: importedValue(rowValues, headerMap, ["numero", "numerosyco", "num"], 4),
+    ubicacion: importedValue(rowValues, headerMap, ["ubicacion"], 5),
+    numeroSerie: importedValue(rowValues, headerMap, ["otro1", "noserie", "numeroserie", "serie"], 6),
+    fechaFabricacion: importedValue(rowValues, headerMap, ["otro2", "fechaanofabricacion", "fechafabricacion", "fabricacion"], 7),
+    fechaProximoRetimbrado: importedValue(rowValues, headerMap, ["otro3", "fecharetimbrado", "retimbrado"], 8),
     observaciones: importedValue(rowValues, headerMap, ["observaciones", "observacion"], 9),
     senal: importedValue(rowValues, headerMap, ["senal"], 10),
     defectos: importedDefects(rowValues, headerMap),
@@ -294,14 +357,16 @@ async function saveRecords() {
 }
 
 function updateStats() {
-  const total = records.length;
-  const seen = records.filter((record) => record.visto).length;
+  const visibleRecords = currentRecords();
+  const total = visibleRecords.length;
+  const seen = visibleRecords.filter((record) => record.visto).length;
   $("totalCount").textContent = total;
   $("seenCount").textContent = seen;
   $("pendingCount").textContent = total - seen;
 }
 
 function showView(name) {
+  $("typeView").classList.toggle("hidden", name !== "type");
   $("homeView").classList.toggle("hidden", name !== "home");
   $("listView").classList.toggle("hidden", name !== "list");
   $("correctivosView").classList.toggle("hidden", name !== "correctivos");
@@ -329,11 +394,12 @@ function filteredRecords() {
   const sortOrder = $("sortOrder").value;
 
   const rows = records.filter((record) => {
+    if (currentEquipmentType && equipmentTypeKey(record) !== currentEquipmentType) return false;
     if (seenFilter === "seen" && !record.visto) return false;
     if (seenFilter === "pending" && record.visto) return false;
     if (filterEdificio && ![record.edificio, record.ubicacion].join(" ").toLowerCase().includes(filterEdificio)) return false;
     if (filterNumero && !safeText(record.cantidad).toLowerCase().includes(filterNumero)) return false;
-    if (filterSerie && !safeText(record.numeroSerie).toLowerCase().includes(filterSerie)) return false;
+    if (filterSerie && ![record.modelo, record.numeroSerie, record.fechaFabricacion, record.fechaProximoRetimbrado].join(" ").toLowerCase().includes(filterSerie)) return false;
     return true;
   });
 
@@ -347,7 +413,7 @@ function renderTable() {
   const rows = filteredRecords();
   body.innerHTML = "";
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="15">No hay registros con ese filtro.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14">No hay registros con ese filtro.</td></tr>`;
     return;
   }
   for (const record of rows) {
@@ -358,14 +424,13 @@ function renderTable() {
     tr.innerHTML = `
       <td>${safeText(record.cliente) || "-"}</td>
       <td>${safeText(record.edificio) || "-"}</td>
+      <td>${safeText(record.modelo) || "-"}</td>
       <td><strong>${safeText(record.cantidad) || "-"}</strong></td>
       <td>${safeText(record.ubicacion) || "-"}</td>
-      <td>${safeText(record.modelo) || "-"}</td>
       <td>${safeText(record.numeroSerie) || "-"}</td>
       <td>${safeText(record.fechaFabricacion) || "-"}</td>
       <td>${safeText(record.fechaProximoRetimbrado) || "-"}</td>
       <td>${safeText(record.observaciones) || "-"}</td>
-      <td>${safeText(record.senal) || "-"}</td>
       <td>${defects}</td>
       <td>${photo1}</td>
       <td>${photo2}</td>
@@ -389,6 +454,7 @@ function reportDefectKey(record) {
 
 function recordsWithCorrectivos() {
   return records
+    .filter((record) => !currentEquipmentType || equipmentTypeKey(record) === currentEquipmentType)
     .filter((record) => Array.isArray(record.defectos) && record.defectos.length)
     .map(cleanRecord)
     .sort((a, b) =>
@@ -470,9 +536,9 @@ function correctivosWordHtml() {
       const tableRows = rows.map((record) => `
         <tr>
           <td>${wordCell(record.edificio)}</td>
-          <td>${wordCell(record.cantidad)}</td>
-          <td>${wordCell(record.numeroSerie)}</td>
           <td>${wordCell(record.modelo)}</td>
+          <td>${wordCell(record.cantidad)}</td>
+          <td>${wordCell(record.ubicacion)}</td>
         </tr>
       `).join("");
       return `
@@ -481,9 +547,9 @@ function correctivosWordHtml() {
           <thead>
             <tr>
               <th>Edificio</th>
+              <th>Tipo</th>
               <th>Número</th>
-              <th>Nº serie</th>
-              <th>Modelo</th>
+              <th>Ubicación</th>
             </tr>
           </thead>
           <tbody>${tableRows}</tbody>
@@ -492,7 +558,7 @@ function correctivosWordHtml() {
     }).join("");
     return `
       <section class="${clientIndex ? "pageBreak" : ""}">
-        <h1>Listado de incidencias de extintores</h1>
+        <h1>Listado de incidencias de hidrantes</h1>
         <p class="client">${escapeHtml(clientName)}</p>
         ${blocks}
       </section>
@@ -503,17 +569,17 @@ function correctivosWordHtml() {
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
   <meta charset="utf-8">
-  <title>Listado de incidencias de extintores</title>
+  <title>Listado de incidencias de hidrantes</title>
   <style>
     @page { size: 8.5in 11in; margin: .55in .55in .55in .55in; }
     body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10.5pt; }
     h1 { text-align: center; font-size: 20pt; margin: 18pt 0 18pt; font-weight: 700; }
     .client { text-align: center; font-size: 16pt; font-weight: 700; margin: 0 0 18pt; }
     .meta { color: #555; font-size: 9pt; text-align: right; margin: 0 0 10pt; }
-    h2 { color: #8a1538; font-size: 14pt; margin: 22pt 0 6pt .2in; font-weight: 700; }
+    h2 { color: #df5600; font-size: 14pt; margin: 22pt 0 6pt .2in; font-weight: 700; }
     table { border-collapse: collapse; width: 100%; margin: 0 0 22pt; table-layout: fixed; }
     th, td { border: 1px solid #000; padding: 2pt 5pt; vertical-align: top; line-height: 1.05; }
-    th { background: #d9eaf7; text-align: left; font-weight: 700; }
+    th { background: #fff0db; text-align: left; font-weight: 700; }
     th:nth-child(1), td:nth-child(1) { width: 25%; }
     th:nth-child(2), td:nth-child(2) { width: 25%; }
     th:nth-child(3), td:nth-child(3) { width: 25%; }
@@ -537,7 +603,7 @@ function downloadCorrectivosWord() {
   const blob = new Blob(["\ufeff", correctivosWordHtml()], { type: "application/msword;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `Correctivos_extintores_${new Date().toISOString().slice(0, 10)}.doc`;
+  a.download = `Correctivos_hidrantes_${new Date().toISOString().slice(0, 10)}.doc`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
@@ -1029,7 +1095,9 @@ async function downloadChecklist() {
 function renderDefects(selected = []) {
   const box = $("defectsList");
   box.innerHTML = "";
-  for (const option of defectOptions) {
+  const type = equipmentTypeKey($("modelo")?.value || "Hidrante");
+  const options = DEFECTS_BY_TYPE[type] || DEFECTS_BY_TYPE.hidrante;
+  for (const option of options) {
     const label = document.createElement("label");
     label.className = "checkItem";
     label.innerHTML = `<input type="checkbox" value="${option}"><span>${option}</span>`;
@@ -1641,10 +1709,11 @@ function openForm(id = null) {
   const record = id ? records.find((item) => item.id === id) : null;
   $("recordId").value = record?.id || "";
   updateLastNumberUsed(record?.id || "");
-  $("formTitle").textContent = record ? "Ver y corregir extintor" : "Meter dato nuevo";
+  $("formTitle").textContent = record ? "Ver y corregir equipo" : "Meter dato nuevo";
   $("formKicker").textContent = record ? "REGISTRO EXISTENTE" : "NUEVO REGISTRO";
   $("deleteBtn").classList.toggle("hidden", !record);
   for (const key of fields) $(key).value = safeText(record?.[key]);
+  if (!record) $("modelo").value = currentEquipmentLabel();
   $("visto").checked = Boolean(record?.visto);
   renderDefects(record?.defectos || []);
   const photos = Array.isArray(record?.photos) ? record.photos : ["", ""];
@@ -1742,6 +1811,7 @@ async function importExcelFile(file) {
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return;
     const record = rowToImportedRecord(row.values, rowNumber, headerMap);
+    if (currentEquipmentType) record.modelo = currentEquipmentLabel();
     record.photos = photosByRow.get(rowNumber) || ["", ""];
     const hasData = [record.edificio, record.cantidad, record.ubicacion, record.modelo, record.numeroSerie].some((value) => safeText(value).trim());
     if (!hasData) return;
@@ -1774,30 +1844,21 @@ function defectFlag(selected, defect) {
 async function downloadExcel() {
   if (!window.ExcelJS) return alert("No se ha cargado el generador de Excel.");
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Correctivos";
+  workbook.creator = "Hidrantes";
   workbook.created = new Date();
-  const sheet = workbook.addWorksheet("Extintores");
+  const sheet = workbook.addWorksheet("Hidrantes");
   const columns = [
     ["cliente", "Cliente", 22],
-    ["edificio", "Edificio", 14],
-    ["cantidad", "Número SYCo", 18],
-    ["ubicacion", "Ubicación", 42],
-    ["modelo", "Modelo", 20],
-    ["numeroSerie", "Nº serie", 18],
-    ["fechaFabricacion", "Fecha / año fabricación", 22],
-    ["fechaProximoRetimbrado", "Fecha retimbrado", 20],
+    ["edificio", "Edificio", 20],
+    ["modelo", "Tipo", 16],
+    ["cantidad", "Número", 16],
+    ["ubicacion", "Ubicación", 34],
+    ["numeroSerie", "Otro 1", 18],
+    ["fechaFabricacion", "Otro 2", 18],
+    ["fechaProximoRetimbrado", "Otro 3", 18],
     ["observaciones", "Observaciones", 34],
-    ["senal", "Señal", 14],
     ["defectos", "Defectos encontrados", 42],
-    ["defectoCaducado", "Extintor caducado", 20],
-    ["defectoObstaculo", "Hay un obstáculo", 20],
-    ["defectoDescargado", "Extintor descargado", 22],
-    ["defectoSinPresion", "Extintor sin presión", 22],
-    ["defectoSuelo", "Extintor en el suelo", 22],
-    ["defectoCristal", "Cristal armario roto o sin cristal", 32],
-    ["defectoSinSenal", "Sin señal", 16],
-    ["defectoSenalCaducada", "Señal caducada", 20],
-    ["defectoMalEstado", "Extintor en mal estado", 24],
+    ...defectOptions.map((defect) => [`defecto_${normalizeHeader(defect)}`, defect.replace(/\.$/, ""), 22]),
     ["foto1", "Foto 1", 22],
     ["foto2", "Foto 2", 22],
     ["visto", "Visto", 10],
@@ -1810,28 +1871,21 @@ async function downloadExcel() {
 
   for (const record of filteredRecords()) {
     const selected = record.defectos || [];
-    const row = sheet.addRow({
+    const rowValues = {
       ...record,
       defectos: selected.join(" / "),
-      defectoCaducado: defectFlag(selected, "Extintor caducado."),
-      defectoObstaculo: defectFlag(selected, "Hay un obstáculo."),
-      defectoDescargado: defectFlag(selected, "Extintor descargado."),
-      defectoSinPresion: defectFlag(selected, "Extintor sin presión."),
-      defectoSuelo: defectFlag(selected, "Extintor en el suelo."),
-      defectoCristal: defectFlag(selected, "Cristal armario roto o sin cristal."),
-      defectoSinSenal: defectFlag(selected, "Sin señal."),
-      defectoSenalCaducada: defectFlag(selected, "Señal caducada."),
-      defectoMalEstado: defectFlag(selected, "Extintor en mal estado."),
       foto1: record.photos[0] ? "Foto 1" : "",
       foto2: record.photos[1] ? "Foto 2" : "",
       visto: record.visto ? "Sí" : "No",
-    });
+    };
+    for (const defect of defectOptions) rowValues[`defecto_${normalizeHeader(defect)}`] = defectFlag(selected, defect);
+    const row = sheet.addRow(rowValues);
     if (record.photos[0] || record.photos[1]) row.height = 92;
     [0, 1].forEach((photoIndex) => {
       const photo = record.photos[photoIndex];
       if (!photo) return;
       const imageId = workbook.addImage({ base64: photo, extension: "jpeg" });
-      const col = photoIndex === 0 ? 20 : 21;
+      const col = columns.length - 3 + photoIndex;
       sheet.addImage(imageId, { tl: { col, row: row.number - 1 }, ext: { width: 120, height: 85 }, editAs: "oneCell" });
     });
   }
@@ -1852,12 +1906,16 @@ async function downloadExcel() {
   const blob = new Blob([await workbook.xlsx.writeBuffer()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `Correctivos_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.download = `Hidrantes_${new Date().toISOString().slice(0, 10)}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 function bindEvents() {
+  $("selectHidranteBtn").addEventListener("click", () => selectEquipmentType("hidrante"));
+  $("selectArmarioBtn").addEventListener("click", () => selectEquipmentType("armario"));
+  $("selectColumnaSecaBtn").addEventListener("click", () => selectEquipmentType("columnaSeca"));
+  $("changeTypeBtn").addEventListener("click", () => showView("type"));
   $("openListBtn").addEventListener("click", () => showView("list"));
   $("openCorrectivosBtn").addEventListener("click", () => showView("correctivos"));
   $("openChecklistBtn").addEventListener("click", () => showView("checklist"));
@@ -1901,6 +1959,10 @@ function bindEvents() {
     $(id).addEventListener("change", renderTable);
   });
   $("recordForm").addEventListener("submit", saveForm);
+  $("modelo").addEventListener("change", () => {
+    const selected = Array.from($("defectsList").querySelectorAll("input:checked")).map((input) => input.value);
+    renderDefects(selected);
+  });
   $("deleteBtn").addEventListener("click", deleteCurrent);
   [0, 1].forEach((index) => {
     $(`photoInput${index + 1}`).addEventListener("change", async (event) => {
@@ -1927,6 +1989,7 @@ async function init() {
   await loadRecords();
   bindEvents();
   updateStats();
+  showView("type");
 }
 
 init().catch((error) => {

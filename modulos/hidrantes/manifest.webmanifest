@@ -3,8 +3,8 @@
   "short_name": "Hidrantes",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#fff5f7",
-  "theme_color": "#8a1538",
+  "background_color": "#fff7ed",
+  "theme_color": "#ff7900",
   "icons": [
     {
       "src": "icon.svg",
