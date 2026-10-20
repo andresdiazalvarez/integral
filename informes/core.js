@@ -57,7 +57,8 @@
     if(pdfs.some(p=>p.historical))warnings.push('Hay páginas históricas: se identificarán como antecedentes sin alterar su contenido.');
     return {errors:[...new Set(errors)],warnings:[...new Set(warnings)]};
   }
-  function forExport(draft,partial=false){const d=JSON.parse(JSON.stringify(draft));d.partial=partial;if(partial){for(const key of ['centerName','revision','year','actaNumber','start','end','issued','author'])if(!text(d[key]).trim())d[key]='No informado';if(d.hours&&!d.hoursBasis)d.hoursBasis='Criterio no verificado';}return d;}
+  function reportText(value){const s=text(value).trim();return /^(?:no informad[oa]s?|no indicad[oa]s?|no verificado|sin identificar|sin numero|edificio no indicado)$/i.test(norm(s))||/^(\p{L})\1{4,}$/u.test(s)?'':s;}
+  function forExport(draft,partial=false){const d=JSON.parse(JSON.stringify(draft));d.partial=partial;for(const key of ['centerName','revision','year','actaNumber','start','end','issued','author'])d[key]=reportText(d[key]);for(const [key,value] of Object.entries(d))if(typeof value==='string')d[key]=reportText(value);for(const key of ['start','end','issued','lastReview'])if(d[key]&&(!/^\d{4}-\d{2}-\d{2}$/.test(d[key])||!Number.isFinite(Date.parse(d[key]))||new Date(d[key]).toISOString().slice(0,10)!==d[key]))d[key]='';if(d.start&&d.end&&d.start>d.end){d.start='';d.end='';}if(d.year&&!/^\d{4}$/.test(String(d.year)))d.year='';if(d.operators&&(!/^\d+$/.test(String(d.operators))||+d.operators<1))d.operators='';if(d.hours&&(!Number.isFinite(Number(d.hours))||+d.hours<0||!d.hoursBasis))d.hours='';return d;}
   function photoLayout(value){const perPage=Number(value)===8?8:6;return {perPage,columns:2,rows:perPage/2};}
   function equipmentPlan(module,records,issues,excludedPhotos=[],perPage=6){
     const correctiveRecords=records.map(record=>({...record,defects:issues===undefined?record.defects:issues.filter(i=>i.module===module&&i.key===record.key&&i.status!=='antecedente').map(i=>i.text)})).filter(r=>r.defects.length);
@@ -107,6 +108,6 @@
     if(Object.prototype.toString.call(value)==='[object ArrayBuffer]')return new Uint8Array(value);
     throw Error('No se pudieron leer los bytes del PDF que se incorpora al informe.');
   }
-  const api={names,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups,photoLayout,systemReportSources,pdfBytes};
+  const api={names,reportText,text,norm,identity,signature,defects,equipment,selectRecords,systemDefects,consolidate,parsePages,validate,forExport,equipmentPlan,inclusionGroups,correctiveGroups,photoLayout,systemReportSources,pdfBytes};
   if(typeof module!=='undefined')module.exports=api;else root.PCI=api;
 })(typeof window!=='undefined'?window:globalThis);

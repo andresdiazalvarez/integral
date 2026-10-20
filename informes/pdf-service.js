@@ -19,18 +19,18 @@ window.PCIPdf=(()=>{
     pdf.setTextColor(...blue);pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('SYCOGROUP',16,19);pdf.setFontSize(11);pdf.text(title,194,18,{align:'right'});
     pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(35);pdf.text('Instalaciones de protección contra incendios',194,24,{align:'right'});
     pdf.setDrawColor(...blue);pdf.line(16,29,194,29);
-    const center=(d.code?d.code+' · ':'')+d.centerName;pdf.setFont('helvetica','bold');pdf.setFontSize(9);const centerSize=Math.min(9,178/Math.max(pdf.getTextWidth(center),1)*9);line(pdf,center,16,35,centerSize,true);
-    line(pdf,`${d.revision} · ${d.year}   |   Acta ${d.actaNumber}`,16,41,9);
+    const center=[d.code,d.centerName].map(PCI.reportText).filter(Boolean).join(' · ');pdf.setFont('helvetica','bold');pdf.setFontSize(9);const centerSize=Math.min(9,178/Math.max(pdf.getTextWidth(center),1)*9);line(pdf,center,16,35,centerSize,true);
+    line(pdf,[[d.revision,d.year].filter(Boolean).join(' · '),d.actaNumber?'Acta '+d.actaNumber:''].filter(Boolean).join('   |   '),16,41,9);
     if(d.partial)line(pdf,'BORRADOR · DATOS INCOMPLETOS / SIN VALIDAR',16,46,7,true);
   }
   function start(pdf,d,title,first=false){if(!first)pdf.addPage();head(pdf,d,title);return 48;}
   function table(pdf,headings,rows,y,options={}){pdf.autoTable({startY:y,head:headings.length?[headings]:undefined,body:rows,margin:{left:16,right:16,top:48,bottom:19},styles:{font:'helvetica',fontSize:9,cellPadding:2.4,overflow:'linebreak',lineColor:[190,200,210],lineWidth:.15},headStyles:{fillColor:blue,fontSize:9},alternateRowStyles:{fillColor:[247,249,251]},rowPageBreak:'avoid',showHead:'everyPage',didDrawPage:data=>{if(data.pageNumber>1&&options.draft)head(pdf,options.draft,options.title||'CONTINUACIÓN');},...options});return pdf.lastAutoTable.finalY+6;}
   function band(pdf,title,y){if(y>245)y=start(pdf,pdf.pciDraft,pdf.pciTitle);pdf.setFillColor(...blue);pdf.rect(16,y,178,7,'F');pdf.setTextColor(255);pdf.setFont('helvetica','bold');pdf.setFontSize(Math.min(10,172/Math.max(pdf.getTextWidth(title),1)*10));pdf.text(title,18,y+4.8);return y+10;}
-  function fields(pdf,rows,y,d,title){return table(pdf,[],rows.map(([label,value])=>[label,PCI.text(value)||'No informado']),y,{columnStyles:{0:{cellWidth:62,fontStyle:'bold'}},draft:d,title});}
+  function fields(pdf,rows,y,d,title){const values=rows.map(([label,value])=>[label,PCI.reportText(value)]).filter(([,value])=>value);return values.length?table(pdf,[],values,y,{columnStyles:{0:{cellWidth:62,fontStyle:'bold'}},draft:d,title}):y;}
   function correctiveHeader(pdf,d,title){
     const page=pdf.internal.getCurrentPageInfo().pageNumber;pdf.pciCompactHeaders=pdf.pciCompactHeaders||new Set();if(pdf.pciCompactHeaders.has(page))return;pdf.pciCompactHeaders.add(page);
     pdf.setFont('helvetica','bold');pdf.setFontSize(15);pdf.setTextColor(0);pdf.text(title,105,18,{align:'center'});
-    pdf.setFont('helvetica','normal');pdf.setFontSize(8);const context=[d.code,d.centerName,`${d.revision} · ${d.year}`].filter(Boolean).join(' · ');const size=Math.min(8,178/Math.max(pdf.getTextWidth(context),1)*8);line(pdf,context,16,25,size);
+    pdf.setFont('helvetica','normal');pdf.setFontSize(8);const context=[d.code,d.centerName,[d.revision,d.year].filter(Boolean).join(' · ')].filter(Boolean).join(' · ');const size=Math.min(8,178/Math.max(pdf.getTextWidth(context),1)*8);line(pdf,context,16,25,size);
     if(d.partial)line(pdf,'BORRADOR · DATOS INCOMPLETOS / SIN VALIDAR',16,30,7,true);
   }
   function correctiveTables(pdf,d,module,groups,y,pageTitle,compactHeader=true){
@@ -40,7 +40,7 @@ window.PCIPdf=(()=>{
       pdf.autoTable({startY:y,margin:{left:16,right:16,top,bottom:19},theme:'grid',
         head:[[{content:group.title,colSpan:4,styles:{fillColor:[35,95,153],textColor:255,halign:'left',fontSize:9,fontStyle:'bold',minCellHeight:8}}],
           ['EDIFICIO / DEPENDENCIA',numberHeading,'MODELO','INCIDENCIA']],
-        body:group.rows.map(r=>[r.building,r.number,r.model,r.incidence]),
+        body:group.rows.map(r=>[r.building,r.number,r.model,r.incidence].map(PCI.reportText)),
         styles:{font:'helvetica',fontSize:8,textColor:0,fillColor:255,lineColor:0,lineWidth:.15,cellPadding:1.8,minCellHeight:7,overflow:'linebreak'},
         headStyles:{fillColor:[220,234,246],textColor:0,fontStyle:'bold',fontSize:7,halign:'center'},
         columnStyles:{0:{cellWidth:45},1:{cellWidth:23},2:{cellWidth:53},3:{cellWidth:57}},
@@ -67,19 +67,19 @@ window.PCIPdf=(()=>{
     y=band(pdf,'3. EMPRESA MANTENEDORA Y PERSONAL',y);
     fields(pdf,[['Denominación social',d.companyName],['CIF',d.companyTax],['Registro / habilitación',d.companyRegistration],['Dirección / teléfono',d.companyAddress],['Correo electrónico',d.companyEmail],['Especialidades habilitadas',d.companySpecialties],['Técnicos / empresa / acreditación / función',d.technicians]],y,d,'ACTA DE MANTENIMIENTO');
     y=start(pdf,d,'ACTA DE MANTENIMIENTO');y=band(pdf,'4. DATOS DE LA INSTALACIÓN',y);
-    y=fields(pdf,[['Nombre oficial',d.installationName||d.centerName],['Edificio / localización',d.installationBuilding],['Dirección',d.installationAddress],['Fecha última revisión',d.lastReview],['Revisión actual',d.revision+' · '+d.year],['Revisiones trimestrales por',d.quarterlyBy],['Mantenimiento anterior / habilitación',d.previousCompany]],y,d,'ACTA DE MANTENIMIENTO');
+    y=fields(pdf,[['Nombre oficial',d.installationName||d.centerName],['Edificio / localización',d.installationBuilding],['Dirección',d.installationAddress],['Fecha última revisión',d.lastReview],['Revisión actual',[d.revision,d.year].filter(Boolean).join(' · ')],['Revisiones trimestrales por',d.quarterlyBy],['Mantenimiento anterior / habilitación',d.previousCompany]],y,d,'ACTA DE MANTENIMIENTO');
     y=band(pdf,'5. VERIFICACIONES GENERALES',y);
-    table(pdf,['Verificación','Resultado','Comentario'],checks.map((text,i)=>[text,d.checks?.[i]?.value||'No verificado',d.checks?.[i]?.comment||'']),y,{columnStyles:{0:{cellWidth:95},1:{cellWidth:27}},draft:d,title:'ACTA DE MANTENIMIENTO'});
+    table(pdf,['Verificación','Resultado','Comentario'],checks.map((text,i)=>[text,PCI.reportText(d.checks?.[i]?.value),PCI.reportText(d.checks?.[i]?.comment)]).filter(row=>row[1]||row[2]),y,{columnStyles:{0:{cellWidth:95},1:{cellWidth:27}},draft:d,title:'ACTA DE MANTENIMIENTO'});
     y=start(pdf,d,'ACTA DE MANTENIMIENTO');y=band(pdf,'6. INSTALACIONES Y EQUIPOS MANTENIDOS',y);
     const installationRows=[];for(let i=0;i<installations.length;i+=2){const a=installations[i],b=installations[i+1];installationRows.push([`${d.installations?.includes(a)?'[X]':'[ ]'} ${a}`,b?`${d.installations?.includes(b)?'[X]':'[ ]'} ${b}`:'']);}
     y=table(pdf,['Instalación / equipo','Instalación / equipo'],installationRows,y,{columnStyles:{0:{cellWidth:89},1:{cellWidth:89}},draft:d,title:'ACTA DE MANTENIMIENTO'});
     y=band(pdf,'7. TIEMPOS DE EJECUCIÓN',y);
-    fields(pdf,[['Inicio de trabajos',d.start+' '+(d.startTime||'')],['Fin de trabajos',d.end+' '+(d.endTime||'')],['Nº de operarios',d.operators],['Horas de revisión',d.hours?d.hours+' · '+d.hoursBasis:'No informadas']],y,d,'ACTA DE MANTENIMIENTO');
+    fields(pdf,[['Inicio de trabajos',d.start+' '+(d.startTime||'')],['Fin de trabajos',d.end+' '+(d.endTime||'')],['Nº de operarios',d.operators],['Horas de revisión',d.hours?[d.hours,d.hoursBasis].filter(Boolean).join(' · '):'']],y,d,'ACTA DE MANTENIMIENTO');
     y=start(pdf,d,'ACTA DE MANTENIMIENTO');y=band(pdf,'8. OBSERVACIONES Y ESTADO FINAL',y);
     y=fields(pdf,[['Correctivos urgentes / observaciones',d.urgentNotes||'Ver relación final de correctivos.'],['Estado tras las pruebas',d.finalState||'No verificado'],['Observaciones técnicas',d.technicalNotes]],y,d,'ACTA DE MANTENIMIENTO');
     if(y>185)y=start(pdf,d,'ACTA DE MANTENIMIENTO');
     y=band(pdf,'9. FIRMAS',y);
-    table(pdf,['Técnico cualificado','Propiedad'],[[d.techSigner||'Sin identificar',d.ownerSigner||'Sin identificar'],['Empresa: '+(d.techSignerCompany||''),'Cargo: '+(d.ownerRole||'')]],y,{columnStyles:{0:{cellWidth:89}},draft:d,title:'ACTA DE MANTENIMIENTO'});
+    table(pdf,['Técnico cualificado','Propiedad'],[[PCI.reportText(d.techSigner),PCI.reportText(d.ownerSigner)],[d.techSignerCompany?'Empresa: '+d.techSignerCompany:'',d.ownerRole?'Cargo: '+d.ownerRole:'']],y,{columnStyles:{0:{cellWidth:89}},draft:d,title:'ACTA DE MANTENIMIENTO'});
     y=pdf.lastAutoTable.finalY+3;pdf.setDrawColor(180);pdf.rect(16,y,86,35);pdf.rect(108,y,86,35);
     if(signatures.tech)await image(pdf,signatures.tech,18,y+2,82,31);
     if(signatures.owner)await image(pdf,signatures.owner,110,y+2,82,31);
@@ -101,7 +101,7 @@ window.PCIPdf=(()=>{
       for(let row=0;row<layout.rows;row++){
         const items=photos.slice(row*2,row*2+2);if(!items.length)break;
         pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-        const captions=items.map(({record:r,index})=>[`Equipo ${r.number||'Sin número'} · Foto ${index+1}`,[r.building||'Edificio no indicado',r.location].filter(Boolean).join(' / ')].flatMap(t=>pdf.splitTextToSize(t,width)));
+        const captions=items.map(({record:r,index})=>[[PCI.reportText(r.number)?'Equipo '+PCI.reportText(r.number):'', 'Foto '+(index+1)].filter(Boolean).join(' · '),[r.building,r.location].map(PCI.reportText).filter(Boolean).join(' / ')].flatMap(t=>pdf.splitTextToSize(t,width)));
         const captionHeight=Math.max(...captions.map(lines=>lines.length))*2.85+3;
         if(captionHeight>rowHeight*.45)throw Error('Identificación demasiado extensa para la cuadrícula de fotos: '+items[0].record.key);
         const top=49+row*(rowHeight+gap);
@@ -118,7 +118,7 @@ window.PCIPdf=(()=>{
     for(const module of Object.keys(PCI.names)){const current=issues.filter(x=>x.module===module);if(!current.length)continue;if(y>230)y=start(pdf,d,'RELACIÓN FINAL DE CORRECTIVOS');y=band(pdf,PCI.names[module].toUpperCase(),y);
       if(module!=='sistemas'){y=correctiveTables(pdf,d,module,PCI.correctiveGroups(module,records.filter(r=>r.module===module),current),y,'RELACIÓN FINAL DE CORRECTIVOS',false);continue;}
       const groups=module==='sistemas'?[['Centrales de detección con averías, alarmas o desconexiones',current.filter(x=>/detecci/i.test(x.type||''))],['Sistemas de extinción con incidencias',current.filter(x=>/extinci/i.test(x.type||''))],['Grupo de presión y red de agua contra incendios',current.filter(x=>/presi|redes/i.test(x.type||''))],['Otros sistemas',current.filter(x=>!/detecci|extinci|presi|redes/i.test(x.type||''))]]:[['',current]];
-      for(const [label,rows] of groups){if(!rows.length)continue;if(label){if(y>245)y=start(pdf,d,'RELACIÓN FINAL DE CORRECTIVOS');line(pdf,label,16,y,10,true);y+=6;}y=table(pdf,['Edificio / dependencia','Número / equipo','Incidencia / procedencia'],rows.map(x=>[x.building||'No indicado',x.number||'No indicado',x.text+(x.status==='antecedente'?'\nANTECEDENTE '+(x.previousRevision||'')+' · pendiente de comprobación':'')]),y,{columnStyles:{0:{cellWidth:44},1:{cellWidth:34}},draft:d,title:'RELACIÓN FINAL DE CORRECTIVOS'});}}
+      for(const [label,rows] of groups){if(!rows.length)continue;if(label){if(y>245)y=start(pdf,d,'RELACIÓN FINAL DE CORRECTIVOS');line(pdf,label,16,y,10,true);y+=6;}y=table(pdf,['Edificio / dependencia','Número / equipo','Incidencia / procedencia'],rows.map(x=>[PCI.reportText(x.building),PCI.reportText(x.number),x.text+(x.status==='antecedente'?'\nANTECEDENTE '+(x.previousRevision||'')+' · pendiente de comprobación':'')]),y,{columnStyles:{0:{cellWidth:44},1:{cellWidth:34}},draft:d,title:'RELACIÓN FINAL DE CORRECTIVOS'});}}
     if(!issues.length)fields(pdf,[['Incidencias','No constan incidencias en los datos seleccionados. No equivale a certificación de conformidad.']],y,d,'RELACIÓN FINAL DE CORRECTIVOS');return pdf.output('arraybuffer');}
   async function parse(blob){return pdfjsLib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise;}
   async function thumbnails(blob,host,selected=null,onToggle=null){const parsed=await parse(blob);host.replaceChildren();for(let n=1;n<=parsed.numPages;n++){const page=await parsed.getPage(n);const viewport=page.getViewport({scale:.24});const canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;const button=document.createElement(onToggle?'button':'div');button.className='thumb'+(!selected||selected.includes(n-1)?' selected':'');button.append(canvas,document.createTextNode('Página '+n));if(onToggle){button.type='button';button.setAttribute('aria-pressed',String(selected.includes(n-1)));button.onclick=()=>onToggle(n-1);}host.append(button);}await parsed.destroy();}
