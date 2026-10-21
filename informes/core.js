@@ -39,14 +39,14 @@
   function validate(draft,records,systems,pdfs){
     const errors=[],warnings=[];
     const missing=draft.allowIncomplete?warnings:errors;
-    [['centerName','Centro'],['revision','Revisión'],['year','Año'],['actaNumber','Número de acta'],['start','Fecha de inicio'],['end','Fecha de fin'],['issued','Fecha de emisión'],['author','Usuario que genera el informe']].forEach(([key,label])=>{if(!text(draft[key]).trim())missing.push('Falta: '+label);});
+    (draft.mode==='previous'?[['revision','Revisión actual'],['start','Fecha de inicio'],['end','Fecha de fin']]:[['centerName','Centro'],['revision','Revisión'],['year','Año'],['actaNumber','Número de acta'],['start','Fecha de inicio'],['end','Fecha de fin'],['issued','Fecha de emisión'],['author','Usuario que genera el informe']]).forEach(([key,label])=>{if(!text(draft[key]).trim())(draft.mode==='previous'?errors:missing).push('Falta: '+label);});
     if(draft.start&&draft.end&&draft.start>draft.end)errors.push('La fecha de fin es anterior a la de inicio.');
     if(draft.year&&!/^\d{4}$/.test(text(draft.year)))errors.push('El año debe tener cuatro cifras.');
     if(draft.operators&&(!/^\d+$/.test(text(draft.operators))||+draft.operators<1))errors.push('El número de operarios debe ser un entero positivo.');
-    if(!draft.validated)missing.push('Confirma la revisión de los datos y comprobaciones actuales.');
-    if(draft.mode==='previous'&&!draft.previousFile)missing.push('Selecciona el acta anterior.');
-    if(draft.mode==='previous'&&!draft.previousReviewed)missing.push('Confirma los datos administrativos recuperados del acta anterior.');
-    if(!draft.holderName||!draft.companyName)missing.push('Completa el titular y la empresa mantenedora.');
+    if(draft.mode!=='previous'&&!draft.validated)missing.push('Confirma la revisión de los datos y comprobaciones actuales.');
+    if(draft.mode==='previous'&&!draft.previousFile)errors.push('Selecciona el acta anterior.');
+
+    if(draft.mode!=='previous'&&(!draft.holderName||!draft.companyName))missing.push('Completa el titular y la empresa mantenedora.');
     if(draft.hours&&!draft.hoursBasis)missing.push('Indica si las horas son totales o por operario.');
     if(draft.signaturePresent&&!draft.signatureConfirmed)errors.push('Confirma la autorización de las imágenes de firma.');
     if(!draft.systemReviewConfirmed&&draft.modules?.sistemas&&(systems.length||pdfs.length))missing.push('Revisa las incidencias de Sistemas, incluidos los PDF externos y las descripciones libres.');

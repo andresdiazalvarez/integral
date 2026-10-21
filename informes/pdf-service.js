@@ -155,7 +155,7 @@ window.PCIPdf=(()=>{
   async function generate(data,progress){
     const {draft:d,records,systems,files,issues,signatures}=data;const target=await PDFLib.PDFDocument.create();const manifest=[];
     async function append(label,bytes,pages){const start=target.getPageCount()+1;const count=await mergePart(target,bytes,pages);manifest.push({label,start,end:start+count-1});}
-    progress('Generando acta nueva…');await append('Acta de mantenimiento',await acta(d,signatures));
+    if(d.mode==='previous'){if(!data.previousActa)throw Error('Falta el acta de la revisión anterior.');const updated=await window.PCIPreviousActa.update(data.previousActa,d,progress);await append('Acta actualizada · '+d.revision,await updated.arrayBuffer());}else{progress('Generando acta nueva…');await append('Acta de mantenimiento',await acta(d,signatures));}
     for(const file of files.filter(f=>f.role==='observations'))await append('Observaciones técnicas del acta: '+file.name,await file.blob.arrayBuffer(),file.pages);
     for(const module of ['correctivos','bie','hidrantes'])if(d.modules[module]){progress('Generando '+PCI.names[module]+'…');await append(PCI.names[module],await equipment(d,module,records.filter(r=>r.module===module),d.excludedPhotos||[],issues));}
     if(d.modules.sistemas){const items=new Map([...systems.map(s=>[s.key,{kind:'saved',...s}]),...files.filter(f=>f.role==='systems').map(f=>[f.id,{kind:'pdf',...f}])]);const order=[...(d.systemOrder||[]),...items.keys()].filter((key,i,all)=>all.indexOf(key)===i&&items.has(key));
