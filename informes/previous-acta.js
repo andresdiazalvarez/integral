@@ -38,7 +38,10 @@
     if(sign&&responsibility)edits.push({clear:true,x:width*.073,y:sign.y+5,width:width*.854,height:Math.max(10,responsibility.y-sign.y-13)});
     const keeper=rows.find(r=>/^el mantenedor$/i.test(r.text.trim()));
     if(keeper)edits.push({clear:true,x:Math.max(0,width-200),y:Math.max(0,keeper.y-72),width:165,height:62});
-    return {edits,revisions,starts,ends};
+    // Algunos PDF conservan texto antiguo tapado por correcciones posteriores.
+    // Evita volver a dibujar dos veces el mismo valor en capas casi coincidentes.
+    const unique=edits.filter((edit,i)=>edit.clear||!edits.some((other,j)=>j>i&&!other.clear&&other.text===edit.text&&Math.abs(other.x-edit.x)<10&&Math.abs(other.y-edit.y)<10));
+    return {edits:unique,revisions,starts,ends};
   }
   async function update(blob,d,progress=()=>{}){
     if(!d.revision||!d.start||!d.end)throw Error('Indica la revisión actual y las fechas de inicio y fin.');
