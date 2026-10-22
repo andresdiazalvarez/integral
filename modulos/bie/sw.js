@@ -1,9 +1,9 @@
-const CACHE_NAME = "integral-bie-v1";
+const CACHE_NAME = "integral-bie-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./app.js",
+  "./app.js?v=20",
   "./seed-data.js",
   "./manifest.webmanifest",
   "./icon.svg",
