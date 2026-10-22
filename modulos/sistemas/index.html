@@ -532,6 +532,8 @@
     }
 
     .photo-preview {
+      cursor: pointer;
+      padding: 0;
       width: 100%;
       aspect-ratio: 4 / 3;
       border-radius: 6px;
@@ -964,6 +966,9 @@
           </div>
         </div>
 
+        <h2>Imágenes</h2>
+        <div id="photoContainer" class="photos"></div>
+
         <div id="sectionContainer"></div>
 
         <div class="section-block">
@@ -989,8 +994,6 @@
           </div>
         </div>
 
-        <h2>Imágenes</h2>
-        <div id="photoContainer" class="photos"></div>
 
         <div class="button-row" style="margin-top: 18px;">
           <button id="saveEntryBtn" class="btn green" type="button">Grabar</button>
@@ -1039,13 +1042,14 @@
           <div id="systemChecks" class="check-grid"></div>
         </div>
 
+        <h2>Imágenes</h2>
+        <div id="quickPhotoContainer" class="photos"></div>
+
         <div class="section-block">
           <div class="section-title">Textos del estado</div>
           <div id="checkTextContainer" class="check-text-grid"></div>
         </div>
 
-        <h2>Imágenes</h2>
-        <div id="quickPhotoContainer" class="photos"></div>
 
         <div class="button-row" style="margin-top: 18px;">
           <button id="saveQuickSystemBtn" class="btn green" type="button">Grabar</button>
@@ -2926,7 +2930,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
 
       els.photoContainer.innerHTML = data.photos.map((photo, index) => `
         <div class="photo-slot">
-          <div class="photo-preview">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1}`}</div>
+          <button type="button" class="photo-preview" data-capture-photo="${index}" aria-label="Hacer foto ${index + 1}">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1} · Hacer foto`}</button>
           <div class="photo-inputs">
             <label>Buscar imagen
               <input type="file" accept="image/*" data-photo="${index}">
@@ -2971,7 +2975,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
       `).join("");
       els.quickPhotoContainer.innerHTML = data.photos.map((photo, index) => `
         <div class="photo-slot">
-          <div class="photo-preview">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1}`}</div>
+          <button type="button" class="photo-preview" data-capture-photo="${index}" aria-label="Hacer foto ${index + 1}">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1} · Hacer foto`}</button>
           <div class="photo-inputs">
             <label>Buscar imagen
               <input type="file" accept="image/*" data-photo="${index}">
@@ -4575,6 +4579,8 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     });
 
     els.photoContainer.addEventListener("click", event => {
+      const capture = event.target.closest("[data-capture-photo]");
+      if (capture) { capture.closest(".photo-slot").querySelector("input[capture]").click(); return; }
       const button = event.target.closest("[data-delete-photo]");
       if (!button) return;
       const data = ensureEntry(activeEntryId);
@@ -4614,6 +4620,8 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     });
 
     els.quickPhotoContainer.addEventListener("click", event => {
+      const capture = event.target.closest("[data-capture-photo]");
+      if (capture) { capture.closest(".photo-slot").querySelector("input[capture]").click(); return; }
       const button = event.target.closest("[data-delete-photo]");
       if (!button) return;
       const data = ensureEntry(activeEntryId);
