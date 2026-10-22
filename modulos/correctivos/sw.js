@@ -1,4 +1,4 @@
-const CACHE_NAME = "integral-correctivos-v1";
+const CACHE_NAME = "integral-correctivos-v2";
 const ASSETS = [
   "./",
   "./index.html",
