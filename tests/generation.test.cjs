@@ -20,7 +20,7 @@ test('el borrador advierte sobre registros ausentes, pero bloquea registros modi
 for(const mode of ['pending','failed'])test(`el PDF se puede descargar aunque las miniaturas estén ${mode}`,async()=>{
   const nodes=new Map();const node=id=>{if(!nodes.has(id))nodes.set(id,{disabled:true,replaceChildren(){}});return nodes.get(id);};
   const draft={pdfs:[]};const messages=[];
-  const context=vm.createContext({busy:false,saveTimer:null,draft,result:null,resultUrl:'',
+  const context=vm.createContext({busy:false,clientScope:null,pendingClientRefresh:false,saveTimer:null,draft,result:null,resultUrl:'',
     warnings:()=>({errors:[]}),renderSummary(){},clearTimeout,structuredClone,
     $:node,saveDraft:async()=>{},selectedRecords:()=>[],selectedSystems:()=>[],verifySources:async()=>{},finalIssues:()=>[],
     exportSystem(){},PCI:{forExport:x=>x},PCIPdf:{generate:async()=>({blob:{},count:4}),thumbnails:()=>mode==='pending'?new Promise(()=>{}):Promise.reject(Error('Fallo de miniaturas'))},
@@ -33,4 +33,9 @@ for(const mode of ['pending','failed'])test(`el PDF se puede descargar aunque la
   assert.equal(context.result.snapshot,JSON.stringify(draft));
   assert.equal(context.busy,false);
   assert.ok(messages.some(x=>x.includes('PDF listo')));
+});
+test('compara la cobertura capturada antes de generar aunque se actualice la pantalla durante el PDF',async()=>{
+ const nodes=new Map(),node=id=>{if(!nodes.has(id))nodes.set(id,{disabled:true});return nodes.get(id);};
+ let context;context=vm.createContext({busy:false,saveTimer:null,pendingClientRefresh:false,draft:{clientReportId:'a',pdfs:[]},clientScope:{fingerprint:'antes'},result:null,resultUrl:'',warnings:()=>({errors:[]}),renderSummary(){},clearTimeout,structuredClone,$:node,saveDraft:async()=>{},selectedRecords:()=>[],selectedSystems:()=>[],verifySources:async()=>{},finalIssues:()=>[],exportSystem(){},PCI:{forExport:x=>x},PCIPdf:{generate:async()=>{context.clientScope.fingerprint='despues';return {blob:{},count:4};}},say(){},verifyClientScope:async expected=>{assert.equal(expected,'antes');throw Error('Inventario actualizado: regenerar');}});
+ vm.runInContext(build,context);await assert.rejects(context.build(true),/Inventario actualizado/);assert.equal(node('download').disabled,true);assert.equal(context.busy,false);
 });

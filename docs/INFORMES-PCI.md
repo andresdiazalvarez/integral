@@ -64,3 +64,14 @@ Los expedientes reales se validan en el navegador del usuario, donde residen sus
 La pantalla inicial muestra el nombre de cada cliente y sus botones PDF, Word y Eliminar. Preparar informe solicita cliente y edificio. Pulsar el nombre abre únicamente sus equipos. Los registros existentes se agrupan por cliente sin perder identificadores ni fotografías; los informes nuevos tienen una identidad independiente aunque compartan nombre.
 
 Los equipos siguen en state/records de su módulo y llevan _reportId. Los metadatos de la lista se guardan en state/clientReports. Guardar un informe sustituye solo sus equipos y conserva los de los demás. Eliminar desde esta lista mueve el informe y sus equipos a state/clientReportsTrash; Recuperar último informe eliminado los restaura. El informe PCI conjunto continúa leyendo state/records, con referencias distintas por informe para evitar colisiones de identificadores. Cuando hay varios clientes, solo incorpora automáticamente el centro indicado o sus alias, además de las asignaciones expresas existentes.
+
+
+## Número general de informe por cliente
+
+Inicio muestra un informe numerado por cliente, descubierto a partir de sus datos de los cuatro módulos o creado con Cliente nuevo. Los números son únicos y no se reutilizan al eliminar clientes. Seleccionar un número guarda la selección general y el generador recupera un expediente propio de ese cliente. El número general figura en el nombre del PDF y en la paginación, separado del número del acta.
+
+La clave meta/clientPortfolio de integral-pci-meta-v1 guarda clientes, números y eliminaciones; selectedClientReport guarda el cliente seleccionado. La selección es exacta por nombre normalizado, con preferencia por los datos de cliente del informe del módulo y de cada entrada de Sistemas. No se usan coincidencias parciales entre clientes. En el informe completo no se aplican exclusiones antiguas de equipos, fotos o entradas de Sistemas y se activan todos los módulos que tienen datos del cliente. Un informe de Sistemas que contenga varios clientes se filtra por entradas antes de generar su PDF, ajustando la cabecera al cliente seleccionado.
+
+Se comprueba la cobertura del inventario al terminar de generar y antes de descargar: cualquier sistema/equipo nuevo, modificado o reasignado obliga a regenerar. Los datos sin cliente inequívoco detienen la generación para evitar omisiones y mezclas. Cada cliente conserva su propia acta, documentos adjuntos y borrador. Los expedientes anteriores cuyo centro coincide exactamente se recuperan para ese cliente sin destruir los originales.
+
+Eliminar desde Inicio archiva el cliente y su número, retira sus informes de las listas de los módulos y bloquea la generación para él. Los datos originales permanecen guardados para poder usar Recuperar último cliente eliminado, que restaura el mismo número. Esta operación no borra físicamente fotografías ni archivos del navegador.

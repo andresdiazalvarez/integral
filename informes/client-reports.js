@@ -15,6 +15,9 @@
   async function create(options){
     const {module,dbName,getRecords,setRecords,enter}=options;
     let reports=[],all=[],active=null,trash=[],working=false,editingId=null;
+    if(root.PCIClientPortfolio)await root.PCIClientPortfolio.load();
+    const hiddenClient=name=>root.PCIClientPortfolio?.archived(name)||false;
+    const hiddenReport=report=>hiddenClient(report.client)||(!root.PCIClientPortfolio?.clientName(report.client)&&all.filter(r=>r._reportId===report.id).some(r=>hiddenClient(r.cliente))); 
     async function transaction(change,write=true){
       const db=await new Promise((resolve,reject)=>{const q=indexedDB.open(dbName);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
       try{return await new Promise((resolve,reject)=>{
@@ -42,10 +45,10 @@
     const status=home.querySelector('#clientReportStatus');
     function render(){
       const list=home.querySelector('#clientReportList');list.replaceChildren();
-      for(const report of reports){const row=document.createElement('article');row.className='client-report-row';const name=document.createElement('button');name.type='button';name.className='client-report-name';name.textContent=report.client;name.onclick=()=>run(()=>open(report.id));
+      for(const report of reports.filter(r=>!hiddenReport(r))){const row=document.createElement('article');row.className='client-report-row';const name=document.createElement('button');name.type='button';name.className='client-report-name';name.textContent=report.client;name.onclick=()=>run(()=>open(report.id));
         const actions=document.createElement('div');actions.className='client-report-actions';
         for(const [label,kind,fn]of [['PDF','pdf',()=>exportReport(report,'pdf')],['Word','word',()=>exportReport(report,'word')],['Eliminar','delete',()=>remove(report)]]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='client-report-'+kind;b.onclick=()=>run(fn);actions.append(b);}row.append(name,actions);list.append(row);}
-      if(!reports.length){const p=document.createElement('p');p.textContent='Todavía no hay informes. Pulsa «Preparar informe». ';list.append(p);}
+      if(!list.childNodes.length){const p=document.createElement('p');p.textContent='Todavía no hay informes. Pulsa «Preparar informe». ';list.append(p);}
       home.querySelector('#restoreClientReport').hidden=!trash.length;
     }
     async function run(fn){if(working)return;working=true;home.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();}catch(e){status.textContent=e.message;console.error(e);}finally{working=false;home.querySelectorAll('button').forEach(b=>b.disabled=false);}}
@@ -55,9 +58,11 @@
       await transaction(state=>{if(!state.clientReports.some(r=>r.id===report.id))throw Error('Este informe fue eliminado en otra ventana. Vuelve a la lista de clientes.');state.records=merge(state.records,report.id,rows);all=state.records;reports=state.clientReports;trash=state.clientReportsTrash;});
     }
     async function open(id){
+      if(root.PCIClientPortfolio)await root.PCIClientPortfolio.load();
       if(active)await persist(getRecords());
       await transaction(state=>{all=state.records;reports=state.clientReports;trash=state.clientReportsTrash;},false);
       active=reports.find(r=>r.id===id);if(!active)throw Error('No se encuentra el informe.');
+      if(hiddenReport(active)){active=null;throw Error('Este cliente está eliminado. Recupéralo desde Inicio.');}
       setRecords(all.filter(r=>r._reportId===id));for(const input of main.querySelectorAll('input[id^="filter"]'))input.value='';for(const [id,value]of [['seenFilter','all'],['sortOrder','none']]){const select=document.getElementById(id);if(select)select.value=value;}
       main.hidden=false;home.hidden=true;bar.hidden=false;bar.querySelector('strong').textContent=active.client;enter();window.scrollTo(0,0);
     }
@@ -69,6 +74,8 @@
     async function restore(){await transaction(state=>{const item=state.clientReportsTrash.pop();if(item){state.clientReports.push(item.report);state.records.push(...item.records);}reports=state.clientReports;all=state.records;trash=state.clientReportsTrash;});render();status.textContent='Informe recuperado.';}
     const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     async function exportReport(report,format){
+      if(root.PCIClientPortfolio)await root.PCIClientPortfolio.load();
+      if(hiddenReport(report))throw Error('Este cliente está eliminado. Recupéralo desde Inicio.');
       status.textContent='Preparando '+format.toUpperCase()+' de '+report.client+'…';
       await transaction(state=>{all=state.records;},false);
       const rows=all.filter(r=>r._reportId===report.id).map(r=>options.clean?options.clean(r):r).map((r,i)=>PCI.equipment(module,r,i));
@@ -81,12 +88,14 @@
       }
       const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=report.client.replace(/[^\p{L}\p{N} -]/gu,'_')+' - '+PCI.names[module]+(format==='pdf'?'.pdf':'.doc');link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent=format.toUpperCase()+' preparado: '+report.client;
     }
-    function reportDialog(report=null){editingId=report?.id||null;const form=dialog.querySelector('form');form.reset();form.elements.client.value=report?.client==='Sin cliente'?'':report?.client||'';form.elements.building.value=report?.building||'';form.querySelector('h2').textContent=report?'Cliente y edificio':'Preparar informe';form.querySelector('[type=submit]').textContent=report?'Guardar datos':'Crear informe';dialog.querySelector('[role=alert]').textContent='';dialog.showModal();}
+    function reportDialog(report=null){editingId=report?.id||null;const form=dialog.querySelector('form');form.reset();form.elements.client.value=report?.client==='Sin cliente'?'':report?.client||'';form.elements.building.value=report?.building||'';form.querySelector('h2').textContent=report?'Cliente y edificio':'Preparar informe';form.querySelector('[type=submit]').textContent=report?'Guardar datos':'Crear informe';dialog.querySelector('[role=alert]').textContent='';dialog.showModal();if(!report&&root.PCIClientPortfolio)root.PCIClientPortfolio.selected().then(client=>{if(dialog.open&&!editingId&&!form.elements.client.value)form.elements.client.value=client?.name||'';}).catch(console.error);}
     home.querySelector('#newClientReport').onclick=()=>reportDialog();bar.querySelector('[data-edit-report]').onclick=()=>reportDialog(active);dialog.querySelector('button[type=button]').onclick=()=>dialog.close();
-    dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,client=form.elements.client.value.trim(),building=form.elements.building.value.trim();if(!client||form.dataset.saving)return;form.dataset.saving='true';form.querySelector('[type=submit]').disabled=true;try{const report={id:editingId||uid(),client,building,createdAt:new Date().toISOString()};if(editingId&&active)await persist(getRecords());await transaction(state=>{const old=state.clientReports.find(r=>r.id===report.id);if(old){state.records=state.records.map(r=>r._reportId!==report.id?r:{...r,cliente:!r.cliente||norm(r.cliente)===norm(old.client)?client:r.cliente,edificio:!r.edificio||r.edificio===old.building?building:r.edificio});Object.assign(old,{client,building});}else state.clientReports.push(report);reports=state.clientReports;});if(active?.id===report.id)active=null;dialog.close();await run(()=>open(report.id));}catch(e){dialog.querySelector('[role=alert]').textContent=e.message;}finally{delete form.dataset.saving;form.querySelector('[type=submit]').disabled=false;}};
+    dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,client=form.elements.client.value.trim(),building=form.elements.building.value.trim();if(!client||form.dataset.saving)return;form.dataset.saving='true';form.querySelector('[type=submit]').disabled=true;try{if(root.PCIClientPortfolio){await root.PCIClientPortfolio.load();if(hiddenClient(client))throw Error('Este cliente está eliminado. Recupéralo desde Inicio.');}const report={id:editingId||uid(),client,building,createdAt:new Date().toISOString()};if(editingId&&active)await persist(getRecords());await transaction(state=>{const old=state.clientReports.find(r=>r.id===report.id);if(old){state.records=state.records.map(r=>r._reportId!==report.id?r:{...r,cliente:!r.cliente||norm(r.cliente)===norm(old.client)?client:r.cliente,edificio:!r.edificio||r.edificio===old.building?building:r.edificio});Object.assign(old,{client,building});}else state.clientReports.push(report);reports=state.clientReports;});if(active?.id===report.id)active=null;dialog.close();await run(()=>open(report.id));}catch(e){dialog.querySelector('[role=alert]').textContent=e.message;}finally{delete form.dataset.saving;form.querySelector('[type=submit]').disabled=false;}};
     bar.querySelector('button').onclick=()=>run(showHome);home.querySelector('#restoreClientReport').onclick=()=>run(restore);
     const oldCleanup=document.getElementById('clearFinishedReportsBtn');if(oldCleanup)oldCleanup.hidden=true;
     main.hidden=true;setRecords([]);render();
+    window.addEventListener('focus',()=>root.PCIClientPortfolio?.load().then(()=>{if(active&&hiddenReport(active)){active=null;setRecords([]);main.hidden=true;home.hidden=false;bar.hidden=true;}render();}).catch(console.error));
+    window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='integral:portfolio-selection')return;root.PCIClientPortfolio?.load().then(()=>{if(active&&hiddenReport(active)){active=null;setRecords([]);main.hidden=true;home.hidden=false;bar.hidden=true;}render();}).catch(console.error);});
     return {persist,get active(){return active;},showHome};
   }
   const api={migrate,merge,create};root.ClientReports=api;if(typeof module!=='undefined')module.exports=api;

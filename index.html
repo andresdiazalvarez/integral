@@ -5,12 +5,12 @@
 <meta name="theme-color" content="#102b40">
 <link rel="manifest" href="manifest.webmanifest">
 <title>INTEGRAL · Mantenimiento PCI</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 <header><a class="brand" href="#inicio">INTEGRAL <small>Mantenimiento PCI</small></a><span id="connection" role="status"></span></header>
 <nav aria-label="Aplicaciones"><a href="#inicio">Inicio</a><a href="#extintores">Extintores</a><a href="#bie">BIE</a><a href="#hidrantes">Hidrantes</a><a href="#sistemas">Sistemas</a><a href="#informes">Generar informe PCI</a></nav>
 <main id="home">
 <p class="eyebrow">TU ESPACIO DE TRABAJO</p><h1>Todo el mantenimiento,<br>en una aplicación.</h1><p class="intro">Selecciona el equipo para revisar registros, tomar datos y preparar informes.</p>
-<div class="cards">
+<section id="client-portfolio" aria-label="Informes por cliente"><h2>Informes por cliente</h2><p>Selecciona el número de informe antes de generar el PCI completo. Se incluirán todos los equipos y sistemas de ese cliente.</p><form class="portfolio-create"><label>Cliente nuevo<input name="client" required placeholder="Nombre del cliente"></label><button type="submit">Crear informe</button></form><div data-client-list></div><div class="portfolio-actions"><button data-refresh-clients type="button">Actualizar clientes</button><button data-restore-client type="button" hidden>Recuperar último cliente eliminado</button></div><p role="status" aria-live="polite"></p></section><div class="cards">
 <a class="report-card" href="#informes"><span>EXPEDIENTE COMPLETO</span><h2>Generar informe PCI →</h2><p>Acta, equipos, fotografías, sistemas y correctivos en un único PDF por centro y revisión.</p></a>
 <a href="#extintores"><span>01 · EXTINTORES</span><h2>Extintores →</h2><p>Equipos, defectos, fotografías e informes de correctivos.</p></a>
 <a href="#bie"><span>02 · BOCAS DE INCENDIO</span><h2>BIE →</h2><p>Revisiones, comprobaciones, defectos y exportación a Excel.</p></a>
@@ -18,6 +18,6 @@
 <a href="#sistemas"><span>04 · INSTALACIONES</span><h2>Sistemas →</h2><p>Detección, extinción, grupos de presión y redes de agua.</p></a>
 </div><aside>Los registros se guardan en este navegador. Para trasladar trabajos desde las aplicaciones anteriores, utiliza sus opciones de exportación e importación. La nueva dirección no incorpora automáticamente los datos guardados en otras direcciones.</aside>
 </main>
-<section id="workspace" hidden aria-label="Área de trabajo"><div class="workspace-heading"><h1 id="module-title"></h1><button id="fullscreen" type="button">Ampliar</button></div><p id="module-note" hidden></p><div id="frames"></div></section>
-<script src="app.js?v=24"></script>
+<section id="workspace" hidden aria-label="Área de trabajo"><div class="workspace-heading"><h1 id="module-title"></h1><button id="fullscreen" type="button">Ampliar</button></div><p id="selected-client-report" role="status"></p><p id="module-note" hidden></p><div id="frames"></div></section>
+<script src="informes/core.js?v=13"></script><script src="informes/data.js?v=3"></script><script src="informes/client-portfolio.js?v=2"></script><script src="app.js?v=25"></script><script src="informes/home-portfolio.js?v=2"></script>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "integral-hidrantes-v3";
+const CACHE_NAME = "integral-hidrantes-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -14,9 +14,11 @@ const ASSETS = [
   "../../informes/vendor/pdf-lib.min.js",
   "../../informes/vendor/pdf.min.js",
   "../../informes/vendor/pdf.worker.min.js",
-  "../../informes/core.js?v=12",
-  "../../informes/pdf-service.js?v=11",
-  "../../informes/client-reports.js?v=2"
+  "../../informes/core.js?v=13",
+  "../../informes/pdf-service.js?v=12",
+  "../../informes/client-reports.js?v=4",
+  "../../informes/data.js?v=3",
+  "../../informes/client-portfolio.js?v=2"
 ];
 
 self.addEventListener("install", (event) => {

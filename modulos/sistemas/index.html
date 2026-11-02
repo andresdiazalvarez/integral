@@ -1099,7 +1099,7 @@
     </section>
   </main>
 
-  <script src="../../informes/core.js?v=12"></script>
+  <script src="../../informes/core.js?v=13"></script><script src="../../informes/data.js?v=3"></script><script src="../../informes/client-portfolio.js?v=2"></script>
   <script>
     const SYSTEMS = [
       "Central de Detección de Incendios",
@@ -1850,7 +1850,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
         type: system,
         meta: {
           syco: "",
-          client: appState.current.header || "",
+          client: appState.current.client || appState.current.header || "",
           building: "",
           system,
           denomination: system
@@ -1900,7 +1900,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
       if (!target.meta) {
         target.meta = {
           syco: "",
-          client: appState.current.header || "",
+          client: appState.current.client || appState.current.header || "",
           building: "",
           system: target.type,
           denomination: target.type
@@ -1979,7 +1979,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
         `).join("")
         : '<div class="empty">Pulsa un sistema amarillo para añadirlo al informe actual.</div>';
 
-      const reports = [...appState.savedReports].sort((a, b) => Number(a.number) - Number(b.number));
+      const reports = [...appState.savedReports].filter(report => { const list=PCIClientPortfolio.entries(report); return list.length ? list.every(entry=>!PCIClientPortfolio.archived(PCIClientPortfolio.systemOwner(entry,report))) : !PCIClientPortfolio.archived(report.header); }).sort((a, b) => Number(a.number) - Number(b.number));
       els.savedReports.innerHTML = reports.length
         ? reports.map(report => `
           <div class="saved-item" data-action="open" data-id="${report.id}" role="button" tabindex="0" aria-label="Abrir Informe ${report.number}">
@@ -2897,7 +2897,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
       els.systemTitle.textContent = data.type;
       els.systemSubtitle.textContent = `Informe ${appState.current.number}`;
       els.metaSyco.value = data.meta.syco || "";
-      els.metaClient.value = data.meta.client || appState.current.header || "";
+      els.metaClient.value = data.meta.client || appState.current.client || appState.current.header || "";
       els.metaBuilding.value = data.meta.building || "";
       els.metaSystem.value = data.meta.system || data.type;
       els.metaDenomination.value = data.meta.denomination || data.type;
@@ -2956,7 +2956,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
       els.quickSystemTitle.textContent = data.type;
       els.quickSystemSubtitle.textContent = `Informe ${appState.current.number}`;
       els.quickMetaSyco.value = data.meta.syco || "";
-      els.quickMetaClient.value = data.meta.client || appState.current.header || "";
+      els.quickMetaClient.value = data.meta.client || appState.current.client || appState.current.header || "";
       els.quickMetaBuilding.value = data.meta.building || "";
       els.quickMetaSystem.value = data.meta.system || data.type;
       els.quickMetaDenomination.value = data.meta.denomination || data.type;
@@ -3374,6 +3374,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
         id: existingIndex >= 0 ? appState.savedReports[existingIndex].id : makeId(),
         number: appState.current.number,
         format: appState.current.format || "old",
+        client: appState.current.client || "",
         header: appState.current.header,
         revisionNumber: appState.current.revisionNumber,
         revisionText: appState.current.revisionText,
@@ -3437,6 +3438,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
         ...appState.savedReports[existingIndex],
         number: appState.current.number,
         format: appState.current.format || "new",
+        client: appState.current.client || "",
         header: appState.current.header,
         revisionNumber: appState.current.revisionNumber,
         revisionText: appState.current.revisionText,
@@ -3502,6 +3504,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       return {
         id: "current",
         number: appState.current.number,
+        client: appState.current.client || "",
         header: appState.current.header,
         revisionNumber: appState.current.revisionNumber,
         revisionText: appState.current.revisionText,
@@ -3612,6 +3615,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       appState.current = {
         number: report.number,
         format: report.format || inferredFormat,
+        client: report.client || ((new Set(entries.map(entry=>entry.meta?.client).filter(Boolean))).size===1?entries.find(entry=>entry.meta?.client)?.meta.client:"") || "",
         header: report.header || "",
         revisionNumber: report.revisionNumber || "1 RT-2026",
         revisionText: report.revisionText || "TRIMESTRAL",
@@ -3643,7 +3647,8 @@ ${item.voice.trim() || "Sin texto aportado."}`;
         if (existingIndex >= 0) {
           appState.savedReports[existingIndex] = {
             ...appState.savedReports[existingIndex],
-            header: appState.current.header,
+            client: appState.current.client || "",
+        header: appState.current.header,
             revisionNumber: appState.current.revisionNumber,
             revisionText: appState.current.revisionText,
             notes: appState.current.notes || "",
@@ -3672,8 +3677,23 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       showScreen("newReportScreen");
     }
 
-    function startNewSystemReport() {
+    async function startNewSystemReport() {
+      const client=await PCIClientPortfolio.selected();
+      if(client){
+        const list=appState.current.entries||[],names=list.map(entry=>PCIClientPortfolio.systemOwner(entry,appState.current));
+        const otherClient=names.length?names.some(name=>!PCIClientPortfolio.same(client,name)):(appState.current.header.trim()&&!PCIClientPortfolio.same(client,appState.current.header));
+        if(otherClient){
+          if(list.length||appState.current.notes.trim()){
+            const snapshot=makeCurrentReportSnapshot();snapshot.id=appState.current.editingId||crypto.randomUUID();
+            const index=appState.savedReports.findIndex(report=>report.id===snapshot.id);if(index>=0)appState.savedReports[index]=snapshot;else appState.savedReports.push(snapshot);
+          }
+          appState.nextNumber=getNextReportNumber();appState.current={number:appState.nextNumber,format:'new',header:client.name,revisionNumber:'',revisionText:'',systems:{},entries:[],notes:'',editingId:null};
+        }
+        if(!appState.current.header.trim())appState.current.header=client.name;
+        const draft=await PCIData.get('draft:client-'+client.id);if(draft?.revision)appState.current.revisionNumber=[draft.revision,draft.year].filter(Boolean).join('-');
+      }
       startNewReport();
+      if(client){appState.current.client=client.name;if(!appState.current.header.trim())appState.current.header=client.name;const currentDraft=await PCIData.get('draft:client-'+client.id);if(currentDraft?.revision)appState.current.revisionNumber=[currentDraft.revision,currentDraft.year].filter(Boolean).join('-');}
       appState.current.format = "new";
       saveState();
       showCurrentReportScreen("Selecciona un sistema amarillo para comenzar el informe.", "homeScreen");
@@ -4662,17 +4682,22 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     }
 
     // Puente de solo lectura: reutiliza la generación existente sin descargar ni guardar otra copia.
-    window.integralExportReport = async function(id, excludedEntryIds = []) {
+    window.integralExportReport = async function(id, excludedEntryIds = [], clientName = "", reportNumber = null) {
       const stored = await loadStateFromDb();
       const report = PCI.systemReportSources(stored || appState).find(item => item.id === id);
       if (!report) throw new Error("El informe de Sistemas ya no existe. Actualiza los datos.");
       const snapshot = cloneData(report);
+      if(clientName)snapshot.header=clientName;
+      if(reportNumber)snapshot.number=reportNumber;
+      if(excludedEntryIds.length)snapshot.notes='';
+      if(!snapshot.sourceEntries?.length&&snapshot.systems?.length)snapshot.systems=snapshot.systems.filter((entry,index)=>!excludedEntryIds.includes(entry.id||'legacy:'+index));
       if (snapshot.sourceEntries?.length) snapshot.sourceEntries = snapshot.sourceEntries.filter(entry => !excludedEntryIds.includes(entry.id));
       if (report.sourceEntries?.length && !snapshot.sourceEntries.length) throw new Error("No hay sistemas seleccionados en este informe.");
       return downloadPdfFromHtml(buildFullHtml(snapshot), "sistemas.pdf", null, true);
     };
-    renderHome();
-    restoreStateFromDb();
+    document.getElementById('newSystemBtn').disabled=true;
+    PCIClientPortfolio.load().then(async()=>{await restoreStateFromDb();renderHome();}).catch(console.error).finally(()=>{document.getElementById('newSystemBtn').disabled=false;});
+    window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='integral:portfolio-selection')return;PCIClientPortfolio.load().then(()=>{renderHome();if(PCIClientPortfolio.archived(appState.current.client||appState.current.header)||(appState.current.entries||[]).some(entry=>PCIClientPortfolio.archived(PCIClientPortfolio.systemOwner(entry,appState.current))))showScreen('homeScreen');}).catch(console.error);});
   </script>
 </body>
 </html>
