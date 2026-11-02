@@ -1,9 +1,9 @@
-const CACHE_NAME = "integral-correctivos-v3";
+const CACHE_NAME = "integral-correctivos-v4";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./app.js?v=23",
+  "./app.js?v=24",
   "./seed-data.js",
   "./manifest.webmanifest",
   "./icon.svg",

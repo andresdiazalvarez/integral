@@ -2,7 +2,7 @@
 
 ## Diagnóstico e integración
 
-Correctivos utiliza IndexedDB `voz-db-v1`, BIE `bie-db-v1` e Hidrantes `hidrantes-correctivos-db-v1`. Los tres guardan el array original en `state/records`, con ID interno, datos de equipo, defectos, fotos como data URL y el campo Visto. No se presupone que Visto certifique ensayos. Hidrantes distingue Hidrante, Armario y Columna seca mediante el modelo del equipo. La base antigua integral-hidrantes-db-v1 se conserva sin modificar.
+Extintores utiliza IndexedDB `voz-db-v1`, BIE `bie-db-v1` e Hidrantes `hidrantes-correctivos-db-v1`. Los tres guardan el array original en `state/records`, con ID interno, datos de equipo, defectos, fotos como data URL y el campo Visto. No se presupone que Visto certifique ensayos. Hidrantes distingue Hidrante, Armario y Columna seca mediante el modelo del equipo. La base antigua integral-hidrantes-db-v1 se conserva sin modificar.
 
 Sistemas utiliza `sistemas-informes-db`, almacén `state`, clave `sistemas.informes.v2`, con respaldo en localStorage. Guarda informes estructurados (`savedReports`, `sourceEntries`, secciones, casillas y fotos); no guarda normalmente el binario PDF. La integración añade un puente de solo lectura que llama a `buildFullHtml` y a la generación PDF existente, devolviendo un Blob sin descargar ni volver a guardar el informe. No cambia las reglas de mantenimiento.
 
@@ -59,7 +59,7 @@ Ejecuta `node --test tests/pci.test.cjs`. En el navegador, comprueba una revisi�
 Los expedientes reales se validan en el navegador del usuario, donde residen sus datos. Los ensayos de desarrollo utilizan datos sintéticos y no fijan centros, cantidades ni revisiones de los ejemplos del encargo.
 
 
-## Informes por cliente en Correctivos, BIE e Hidrantes
+## Informes por cliente en Extintores, BIE e Hidrantes
 
 La pantalla inicial muestra el nombre de cada cliente y sus botones PDF, Word y Eliminar. Preparar informe solicita cliente y edificio. Pulsar el nombre abre únicamente sus equipos. Los registros existentes se agrupan por cliente sin perder identificadores ni fotografías; los informes nuevos tienen una identidad independiente aunque compartan nombre.
 

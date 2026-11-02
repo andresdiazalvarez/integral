@@ -589,7 +589,7 @@ function buildCorrectivosAnalysis() {
   const correctivos = recordsWithCorrectivos();
   const clients = new Map();
   for (const record of correctivos) {
-    const clientName = safeText(record.cliente).trim() || "Correctivos";
+    const clientName = safeText(record.cliente).trim() || "Extintores";
     if (!clients.has(clientName)) clients.set(clientName, new Map());
     const groups = clients.get(clientName);
     const key = reportDefectKey(record);
@@ -844,7 +844,7 @@ async function downloadEconomicExcel(title, recordsList, filePrefix) {
     return;
   }
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Correctivos";
+  workbook.creator = "Extintores";
   workbook.created = new Date();
   workbook.calcProperties.fullCalcOnLoad = true;
   const sheet = workbook.addWorksheet("Resumen económico");
@@ -1908,13 +1908,13 @@ async function clearFinishedReports() {
     alert("No hay informes terminados para limpiar.");
     return;
   }
-  if (!confirm("Â¿Seguro que quieres limpiar los informes terminados de Correctivos? Solo se borrarÃ¡n los datos guardados en esta app.")) return;
+  if (!confirm("Â¿Seguro que quieres limpiar los informes terminados de Extintores? Solo se borrarÃ¡n los datos guardados en esta app.")) return;
   records = [];
   localStorage.removeItem((clientReportManager?.active ? LAST_NUMBER_KEY + ":" + clientReportManager.active.id : LAST_NUMBER_KEY));
   await saveRecords();
   renderTable();
   showView("home");
-  alert("Informes terminados limpiados en Correctivos.");
+  alert("Informes terminados limpiados en Extintores.");
 }
 
 function mergeImportedIntoExisting(existing, imported) {
@@ -2039,7 +2039,7 @@ function defectFlag(selected, defect) {
 async function downloadExcel() {
   if (!window.ExcelJS) return alert("No se ha cargado el generador de Excel.");
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Correctivos";
+  workbook.creator = "Extintores";
   workbook.created = new Date();
   const sheet = workbook.addWorksheet("Extintores");
   const columns = [
@@ -2131,7 +2131,7 @@ async function downloadExcel() {
   const blob = new Blob([await workbook.xlsx.writeBuffer()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `Correctivos_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.download = `Extintores_${new Date().toISOString().slice(0, 10)}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

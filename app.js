@@ -1,9 +1,9 @@
-const modules = {correctivos:'Correctivos',bie:'BIE',hidrantes:'Hidrantes',sistemas:'Sistemas',informes:'Generar informe PCI'};
+const modules = {correctivos:'Extintores',bie:'BIE',hidrantes:'Hidrantes',sistemas:'Sistemas',informes:'Generar informe PCI'};
 function navigate(){
-  const key=location.hash.slice(1); const active=Object.hasOwn(modules,key);
+  const requested=location.hash.slice(1),key=requested==='extintores'?'correctivos':requested; const active=Object.hasOwn(modules,key);
   document.getElementById('home').hidden=active;
   document.getElementById('workspace').hidden=!active;
-  document.querySelectorAll('nav a').forEach(a=>{if(a.hash==='#'+(active?key:'inicio'))a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  document.querySelectorAll('nav a').forEach(a=>{if(a.hash==='#'+(active?(key==='correctivos'?'extintores':key):'inicio'))a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   document.querySelectorAll('iframe').forEach(frame=>frame.hidden=frame.dataset.module!==key);
   document.title=active?modules[key]+' · INTEGRAL':'INTEGRAL · Mantenimiento PCI';
   if(!active)return;
