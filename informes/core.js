@@ -4,7 +4,7 @@
   const text=v=>v==null?'':String(v);
   const norm=v=>text(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[.\s]+$/g,'').replace(/\s+/g,' ').trim();
   function signature(row){const value=JSON.stringify(row);let a=2166136261,b=5381;for(let i=0;i<value.length;i++){a=Math.imul(a^value.charCodeAt(i),16777619);b=Math.imul(b,33)^value.charCodeAt(i);}return `${value.length}:${(a>>>0).toString(16)}:${(b>>>0).toString(16)}`;}
-  function identity(module,row,index=0){return module+':'+(row.id||JSON.stringify([row.cliente,row.edificio,row.ubicacion,row.localizacion,row.cantidad,row.numeroSerie,index]));}
+  function identity(module,row,index=0){return module+':'+(row._reportId?row._reportId+':':'')+(row.id||JSON.stringify([row.cliente,row.edificio,row.ubicacion,row.localizacion,row.cantidad,row.numeroSerie,index]));}
   function defects(row){
     const result=[];const add=value=>{const s=text(value).trim();if(s&&!result.some(x=>norm(x)===norm(s)))result.push(s);};
     (Array.isArray(row.defectos)?row.defectos:[]).forEach(add);

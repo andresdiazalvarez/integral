@@ -10,6 +10,13 @@ function renderInclusionStatus(){
 }
 async function incorporateAvailable(){
   const keys=new Set(PCI.inclusionGroups(catalog,bindings,centerId(),revisionId(),draft.id).flatMap(g=>g.available));
+  const candidates=catalog.filter(row=>keys.has(row.key)&&draft.modules[row.module]&&!draft.excludedRecords.includes(row.key));
+  const clients=new Set(candidates.map(row=>PCI.norm(row.client)).filter(Boolean));
+  const expected=[draft.centerName,draft.sourceClient,...(draft.aliasesText||'').split('\n')].map(PCI.norm).filter(Boolean);
+  if(clients.size>1){
+    for(const row of candidates)if(!expected.includes(PCI.norm(row.client))&&bindings[row.key]?.draftId!==draft.id)keys.delete(row.key);
+    if(candidates.length&&!candidates.some(row=>keys.has(row.key)))throw Error('Hay varios clientes guardados. Indica el cliente en «Denominación oficial del centro» o en sus alias para generar únicamente su informe.');
+  }
   const next={...bindings};
   for(const row of catalog){if(!keys.has(row.key)||!draft.modules[row.module]||draft.excludedRecords.includes(row.key))continue;
     next[row.key]={draftId:draft.id,centerId:centerId(),revisionId:revisionId(),signature:row.signature,label:[draft.centerName,draft.revision,draft.year].filter(Boolean).join(' · '),assignedAt:new Date().toISOString(),assignedBy:draft.author||''};

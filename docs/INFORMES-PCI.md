@@ -57,3 +57,10 @@ Esta aplicación es local en el navegador: no hay autenticación de usuarios, ba
 Ejecuta `node --test tests/pci.test.cjs`. En el navegador, comprueba una revisión con IDs repetidos en edificios distintos, dos defectos diferentes del mismo equipo, cuatro fotos, acta con y sin firma, PDF de sistemas de varias páginas y antecedente marcado. Verifica las referencias, el orden, el anexo fotográfico y la relación final. Cambia un registro en origen y comprueba que obliga a actualizar la asignación. Exporta, recarga y recupera el borrador sin perder selecciones.
 
 Los expedientes reales se validan en el navegador del usuario, donde residen sus datos. Los ensayos de desarrollo utilizan datos sintéticos y no fijan centros, cantidades ni revisiones de los ejemplos del encargo.
+
+
+## Informes por cliente en Correctivos, BIE e Hidrantes
+
+La pantalla inicial muestra el nombre de cada cliente y sus botones PDF, Word y Eliminar. Preparar informe solicita cliente y edificio. Pulsar el nombre abre únicamente sus equipos. Los registros existentes se agrupan por cliente sin perder identificadores ni fotografías; los informes nuevos tienen una identidad independiente aunque compartan nombre.
+
+Los equipos siguen en state/records de su módulo y llevan _reportId. Los metadatos de la lista se guardan en state/clientReports. Guardar un informe sustituye solo sus equipos y conserva los de los demás. Eliminar desde esta lista mueve el informe y sus equipos a state/clientReportsTrash; Recuperar último informe eliminado los restaura. El informe PCI conjunto continúa leyendo state/records, con referencias distintas por informe para evitar colisiones de identificadores. Cuando hay varios clientes, solo incorpora automáticamente el centro indicado o sus alias, además de las asignaciones expresas existentes.

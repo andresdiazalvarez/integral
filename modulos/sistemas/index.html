@@ -1099,7 +1099,7 @@
     </section>
   </main>
 
-  <script src="../../informes/core.js?v=7"></script>
+  <script src="../../informes/core.js?v=12"></script>
   <script>
     const SYSTEMS = [
       "Central de Detección de Incendios",
@@ -1944,7 +1944,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
 
     function savedReportTitle(report) {
       const header = (report.header || "").trim().toUpperCase();
-      return `Informe ${report.number}`;
+      return header || `Informe ${report.number}`;
     }
 
     function currentReportTitle() {
@@ -1984,12 +1984,11 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
         ? reports.map(report => `
           <div class="saved-item" data-action="open" data-id="${report.id}" role="button" tabindex="0" aria-label="Abrir Informe ${report.number}">
             <div class="saved-title">${escapeHtml(savedReportTitle(report))}</div>
-            <div class="saved-revision">Nº revisión: ${escapeHtml(report.revisionNumber || "1 RT-2026")}<br>Revisión: ${escapeHtml(report.revisionText || "TRIMESTRAL")}</div>
             <div class="button-row">
               <button class="btn green" type="button" data-action="pdf" data-id="${report.id}">PDF</button>
               <button class="btn blue" type="button" data-action="word" data-id="${report.id}">Word</button>
+              <button class="btn red" type="button" data-action="delete" data-id="${report.id}">Eliminar</button>
             </div>
-            <div class="saved-header">Cabecera: ${escapeHtml((report.header || "").toUpperCase() || "SIN CABECERA")}<br><span class="saved-meta">${report.systems.length} sistema(s) grabado(s)</span></div>
           </div>
         `).join("")
         : '<div class="empty">Todavía no hay informes grabados.</div>';

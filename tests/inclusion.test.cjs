@@ -9,3 +9,8 @@ test('generar incorpora los registros disponibles sin revisión ni diálogo',asy
  assert.equal(context.bindings.a.signature,'actual');assert.equal(context.bindings.a.draftId,'actual');
  assert.equal(context.bindings.b.centerId,'otro');assert.equal(context.bindings.c,undefined);assert.equal(context.bindings.d,undefined);
 });
+test('con varios clientes el informe conjunto solo incorpora el centro elegido',async()=>{
+ const context=vm.createContext({PCI,catalog:[{key:'a',module:'bie',client:'A',signature:'a'},{key:'b',module:'bie',client:'B',signature:'b'}],bindings:{},draft:{id:'actual',centerName:'A',modules:{bie:true},excludedRecords:[]},centerId:()=> 'a',revisionId:()=> 'revision',PCIData:{set:async()=>{}},saveDraft:async()=>{},renderSources(){},renderModules(){},renderSystems(){},renderIssues(){},renderInclusionStatus(){}});
+ const source=fs.readFileSync(path.join(__dirname,'../informes/inclusion.js'),'utf8');vm.runInContext(source.slice(source.indexOf('async function incorporateAvailable'),source.indexOf('async function requestGeneration')),context);
+ await context.incorporateAvailable();assert.equal(context.bindings.a.signature,'a');assert.equal(context.bindings.b,undefined);
+});

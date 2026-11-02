@@ -1,3 +1,4 @@
+let clientReportManager = null;
 const DB_NAME = "voz-db-v1";
 const DB_VERSION = 1;
 const STORE_NAME = "state";
@@ -82,8 +83,9 @@ function normalizeDefects(defects) {
 function cleanRecord(record = {}) {
   return {
     id: record.id || createId(),
-    cliente: safeText(record.cliente),
-    edificio: safeText(record.edificio ?? record.edificioCodigo),
+    _reportId: record._reportId || clientReportManager?.active?.id || "",
+    cliente: safeText(record.cliente) || (clientReportManager?.active?.client !== "Sin cliente" ? clientReportManager?.active?.client : "") || "",
+    edificio: safeText(record.edificio ?? record.edificioCodigo) || clientReportManager?.active?.building || "",
     cantidad: safeText(record.cantidad),
     ubicacion: safeText(record.ubicacion),
     localizacion: safeText(record.localizacion),
@@ -394,7 +396,8 @@ async function loadRecords() {
 async function saveRecords() {
   records = records.map(cleanRecord);
   updateStats();
-  await writeState(records);
+  if (clientReportManager) await clientReportManager.persist(records);
+  else await writeState(records);
 }
 
 function updateStats() {
@@ -1233,7 +1236,7 @@ function setPhotoPreview(index, dataUrl) {
 }
 
 function updateLastNumberUsed(currentId = "") {
-  const savedNumber = localStorage.getItem(LAST_NUMBER_KEY);
+  const savedNumber = localStorage.getItem((clientReportManager?.active ? LAST_NUMBER_KEY + ":" + clientReportManager.active.id : LAST_NUMBER_KEY));
   const lastRecord = records.find((record) => record.id !== currentId && safeText(record.cantidad).trim());
   const value = safeText(savedNumber).trim() || safeText(lastRecord?.cantidad).trim() || "-";
   $("lastNumberUsed").textContent = value;
@@ -1847,6 +1850,7 @@ function openForm(id = null) {
   $("formKicker").textContent = record ? "REGISTRO EXISTENTE" : "NUEVO REGISTRO";
   $("deleteBtn").classList.toggle("hidden", !record);
   for (const key of fields) $(key).value = safeText(record?.[key]);
+  if (!record && clientReportManager?.active) { $("cliente").value = clientReportManager.active.client; $("edificio").value = clientReportManager.active.building; }
   $("visto").checked = Boolean(record?.visto);
   renderDefects(record?.defectos || []);
   const photos = Array.isArray(record?.photos) ? record.photos : ["", "", "", ""];
@@ -1870,7 +1874,7 @@ async function saveForm(event) {
   const index = records.findIndex((item) => item.id === record.id);
   if (index >= 0) records[index] = record;
   else records.unshift(record);
-  if (record.cantidad) localStorage.setItem(LAST_NUMBER_KEY, record.cantidad);
+  if (record.cantidad) localStorage.setItem((clientReportManager?.active ? LAST_NUMBER_KEY + ":" + clientReportManager.active.id : LAST_NUMBER_KEY), record.cantidad);
   await saveRecords();
   if (isNewRecord) openForm();
   else showView("list");
@@ -1890,13 +1894,13 @@ async function clearAllRecords() {
     alert("No hay registros para eliminar.");
     return;
   }
-  if (!confirm("¿Seguro que quieres eliminar todos los registros guardados en este dispositivo?")) return;
+  if (!confirm("¿Seguro que quieres eliminar todos los registros de este informe?")) return;
   records = [];
-  localStorage.removeItem(LAST_NUMBER_KEY);
+  localStorage.removeItem((clientReportManager?.active ? LAST_NUMBER_KEY + ":" + clientReportManager.active.id : LAST_NUMBER_KEY));
   await saveRecords();
   renderTable();
   showView("home");
-  alert("Registros eliminados. Ya puedes importar otro cliente.");
+  alert("Registros del informe eliminados.");
 }
 
 async function clearFinishedReports() {
@@ -1906,7 +1910,7 @@ async function clearFinishedReports() {
   }
   if (!confirm("Â¿Seguro que quieres limpiar los informes terminados de Correctivos? Solo se borrarÃ¡n los datos guardados en esta app.")) return;
   records = [];
-  localStorage.removeItem(LAST_NUMBER_KEY);
+  localStorage.removeItem((clientReportManager?.active ? LAST_NUMBER_KEY + ":" + clientReportManager.active.id : LAST_NUMBER_KEY));
   await saveRecords();
   renderTable();
   showView("home");
@@ -2212,6 +2216,7 @@ if ("serviceWorker" in navigator) {
 async function init() {
   initDateSelects();
   await loadRecords();
+  clientReportManager = await ClientReports.create({module:'correctivos',dbName:DB_NAME,getRecords:()=>records,clean:cleanRecord,setRecords:value=>{records=value.map(cleanRecord);},enter:()=>{showView("home"); updateStats();}});
   bindEvents();
   initTablePinchZoom();
   updateStats();

@@ -166,5 +166,5 @@ window.PCIPdf=(()=>{
     target.setTitle(`${d.centerName} · ${d.revision} · ${d.year}`);target.setAuthor(d.author);target.setSubject('Informe PCI · INTEGRAL');target.setProducer('INTEGRAL · Generador PCI v1');
     const bytes=await target.save();return {blob:new Blob([bytes],{type:'application/pdf'}),manifest,count};
   }
-  return {checks,installations,thumbnails,extract,generate};
+  return {checks,installations,thumbnails,extract,generate,equipmentReport:equipment};
 })();

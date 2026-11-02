@@ -1,14 +1,22 @@
-const CACHE_NAME = "integral-correctivos-v2";
+const CACHE_NAME = "integral-correctivos-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./app.js",
+  "./app.js?v=23",
   "./seed-data.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./exceljs.min.js",
-  "./checklist-template.xlsx"
+  "./checklist-template.xlsx",
+  "../../informes/vendor/jspdf.umd.min.js",
+  "../../informes/vendor/jspdf.plugin.autotable.min.js",
+  "../../informes/vendor/pdf-lib.min.js",
+  "../../informes/vendor/pdf.min.js",
+  "../../informes/vendor/pdf.worker.min.js",
+  "../../informes/core.js?v=12",
+  "../../informes/pdf-service.js?v=11",
+  "../../informes/client-reports.js?v=2"
 ];
 
 self.addEventListener("install", (event) => {

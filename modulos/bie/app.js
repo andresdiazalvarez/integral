@@ -1,3 +1,4 @@
+let clientReportManager = null;
 const DB_NAME = "bie-db-v1";
 const DB_VERSION = 1;
 const STORE_NAME = "state";
@@ -127,8 +128,9 @@ function normalizePhotos(photos) {
 function cleanRecord(record = {}) {
   return {
     id: record.id || createId(),
-    cliente: safeText(record.cliente),
-    edificio: safeText(record.edificio ?? record.edificioCodigo),
+    _reportId: record._reportId || clientReportManager?.active?.id || "",
+    cliente: safeText(record.cliente) || (clientReportManager?.active?.client !== "Sin cliente" ? clientReportManager?.active?.client : "") || "",
+    edificio: safeText(record.edificio ?? record.edificioCodigo) || clientReportManager?.active?.building || "",
     cantidad: safeText(record.cantidad),
     ubicacion: safeText(record.ubicacion),
     localizacion: safeText(record.localizacion),
@@ -415,7 +417,8 @@ async function loadRecords() {
 async function saveRecords() {
   records = records.map(cleanRecord);
   updateStats();
-  await writeState(records);
+  if (clientReportManager) await clientReportManager.persist(records);
+  else await writeState(records);
 }
 
 function updateStats() {
@@ -596,6 +599,7 @@ function openForm(id = null) {
   $("formKicker").textContent = record ? "REGISTRO EXISTENTE" : "NUEVO REGISTRO";
   $("deleteBtn").classList.toggle("hidden", !record);
   for (const key of fields) $(key).value = safeText(record?.[key]);
+  if (!record && clientReportManager?.active) { $("cliente").value = clientReportManager.active.client; $("edificio").value = clientReportManager.active.building; }
   const fabricationValue = safeText(record?.fechaFabricacion);
   const fabricationHasOption = Array.from($("fechaFabricacion").options).some((option) => option.value === fabricationValue);
   $("fechaFabricacion").value = fabricationHasOption ? fabricationValue : "";
@@ -1239,6 +1243,7 @@ if ("serviceWorker" in navigator) {
 async function init() {
   fillYearLists();
   await loadRecords();
+  clientReportManager = await ClientReports.create({module:'bie',dbName:DB_NAME,getRecords:()=>records,clean:cleanRecord,setRecords:value=>{records=value.map(cleanRecord);},enter:()=>{showView("home"); updateStats();}});
   bindEvents();
   updateStats();
 }
