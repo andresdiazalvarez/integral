@@ -532,6 +532,7 @@
     }
 
     .photo-preview {
+      position: relative;
       cursor: pointer;
       padding: 0;
       width: 100%;
@@ -547,6 +548,18 @@
       font-size: .9rem;
       text-align: center;
     }
+
+    .photo-preview .photo-camera-input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .photo-preview:focus-within { outline: 2px solid var(--blue); }
 
     .photo-preview img {
       width: 100%;
@@ -2929,7 +2942,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
 
       els.photoContainer.innerHTML = data.photos.map((photo, index) => `
         <div class="photo-slot">
-          <button type="button" class="photo-preview" data-capture-photo="${index}" aria-label="Hacer foto ${index + 1}">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1} · Hacer foto`}</button>
+          <label class="photo-preview">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1} · Hacer foto`}<input class="photo-camera-input" type="file" accept="image/*" capture="environment" data-photo="${index}" aria-label="Hacer foto ${index + 1}"></label>
           <div class="photo-inputs">
             <label>Buscar imagen
               <input type="file" accept="image/*" data-photo="${index}">
@@ -2974,7 +2987,7 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
       `).join("");
       els.quickPhotoContainer.innerHTML = data.photos.map((photo, index) => `
         <div class="photo-slot">
-          <button type="button" class="photo-preview" data-capture-photo="${index}" aria-label="Hacer foto ${index + 1}">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1} · Hacer foto`}</button>
+          <label class="photo-preview">${photo ? `<img src="${photo}" alt="Imagen ${index + 1}">` : `Imagen ${index + 1} · Hacer foto`}<input class="photo-camera-input" type="file" accept="image/*" capture="environment" data-photo="${index}" aria-label="Hacer foto ${index + 1}"></label>
           <div class="photo-inputs">
             <label>Buscar imagen
               <input type="file" accept="image/*" data-photo="${index}">
@@ -4598,8 +4611,6 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     });
 
     els.photoContainer.addEventListener("click", event => {
-      const capture = event.target.closest("[data-capture-photo]");
-      if (capture) { capture.closest(".photo-slot").querySelector("input[capture]").click(); return; }
       const button = event.target.closest("[data-delete-photo]");
       if (!button) return;
       const data = ensureEntry(activeEntryId);
@@ -4639,8 +4650,6 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     });
 
     els.quickPhotoContainer.addEventListener("click", event => {
-      const capture = event.target.closest("[data-capture-photo]");
-      if (capture) { capture.closest(".photo-slot").querySelector("input[capture]").click(); return; }
       const button = event.target.closest("[data-delete-photo]");
       if (!button) return;
       const data = ensureEntry(activeEntryId);
