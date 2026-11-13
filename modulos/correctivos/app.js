@@ -156,7 +156,7 @@ const importFieldAliases = {
   cantidad: ["numero syco", "n syco", "nº syco", "numerosyco", "numsyco", "nosyco", "syco", "numero de extintor", "numero extintor", "numextintor", "num", "numero", "numequipo", "numero equipo", "numero de equipo"],
   ubicacion: ["ubicacion", "situacion", "localizacion", "emplazamientoequipo", "lugar", "zonaubicacion"],
   modelo: ["modelo", "tipo", "clase", "descripcion", "tipomodelo"],
-  numeroSerie: ["n serie", "nº serie", "no serie", "numero serie", "numero de serie", "noserie", "nserie", "numeroserie", "serie", "numserie", "noserial", "serial", "placa", "n placa", "nº placa", "numero placa", "numero de placa", "noplaca", "numeroplaca"],
+  numeroSerie: ["matricula", "n serie", "nº serie", "no serie", "numero serie", "numero de serie", "noserie", "nserie", "numeroserie", "serie", "numserie", "noserial", "serial", "placa", "n placa", "nº placa", "numero placa", "numero de placa", "noplaca", "numeroplaca"],
   fechaFabricacion: ["fecha ano fabricacion", "fecha año fabricacion", "fecha de fabricacion", "fechaanofabricacion", "fechafabricacion", "ano fabricacion", "año fabricacion", "anofabricacion", "fabricacion", "fabrica", "fabricado", "fechaalta"],
   fechaProximoRetimbrado: ["fecha retimbrado", "fecha de retimbrado", "retimbrado", "retimbre", "ultimo retimbrado", "fecha ultimo retimbrado", "fecharetimbrado", "ultimoretimbrado", "fechaultimoretimbrado", "proxretimbrado"],
   observaciones: ["observaciones", "observacion", "obs", "comentarios", "notas", "incidencias"],
@@ -286,7 +286,7 @@ function rowToImportedRecord(rowValues, index, headerMap = {}) {
     ubicacion: importedValue(rowValues, headerMap, ["ubicacion"], 4),
     localizacion: importedValue(rowValues, headerMap, ["localizacion"], 0),
     modelo: importedValue(rowValues, headerMap, ["modelo"], 5),
-    numeroSerie: importedValue(rowValues, headerMap, ["numeroSerie", "noserie", "numeroserie", "serie"], 6),
+    numeroSerie: importedValue(rowValues, headerMap, ["matricula", "numeroSerie", "noserie", "numeroserie", "serie"], 6),
     fechaFabricacion: importedValue(rowValues, headerMap, ["fechaFabricacion", "fechaanofabricacion", "fechafabricacion", "fabricacion"], 7),
     fechaProximoRetimbrado: importedValue(rowValues, headerMap, ["fechaProximoRetimbrado", "fecharetimbrado", "retimbrado"], 8),
     observaciones: importedValue(rowValues, headerMap, ["observaciones", "observacion"], 9),
@@ -668,7 +668,7 @@ function correctivosWordHtml() {
             <tr>
               <th>Edificio</th>
               <th>Número</th>
-              <th>Nº serie</th>
+              <th>MATRICULA</th>
               <th>Modelo</th>
             </tr>
           </thead>
@@ -802,7 +802,7 @@ function retimbradosWordHtml() {
       <tr>
         <th>Edificio</th>
         <th>Número de extintor</th>
-        <th>Número de serie</th>
+        <th>MATRICULA</th>
         <th>Modelo</th>
         <th>Fecha de fabricación</th>
         <th>Fecha retimbrado</th>
@@ -1002,7 +1002,7 @@ function caducadosWordHtml() {
       <tr>
         <th>Edificio</th>
         <th>Número de extintor</th>
-        <th>Número de serie</th>
+        <th>MATRICULA</th>
         <th>Modelo</th>
         <th>Fecha de fabricación</th>
         <th>Caducidad 20 A</th>
@@ -2049,7 +2049,7 @@ async function downloadExcel() {
     ["ubicacion", "Ubicación", 42],
     ["localizacion", "Localización", 32],
     ["modelo", "Modelo", 20],
-    ["numeroSerie", "Nº serie", 18],
+    ["numeroSerie", "MATRICULA", 18],
     ["fechaFabricacion", "Fecha / año fabricación", 22],
     ["fechaProximoRetimbrado", "Fecha retimbrado", 20],
     ["observaciones", "Observaciones", 34],

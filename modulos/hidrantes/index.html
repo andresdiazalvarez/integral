@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#ff7900" />
     <title>Hidrantes</title>
     <link rel="manifest" href="manifest.webmanifest?v=hidrantes-correctivos-v2" />
-    <link rel="stylesheet" href="styles.css?v=hidrantes-correctivos-v2" />
+    <link rel="stylesheet" href="styles.css?v=27" />
   </head>
   <body>
     <header class="topbar">
@@ -20,6 +20,7 @@
       <section id="typeView" class="hero">
         <p class="kicker">CONTROL DE HIDRANTES</p>
         <h1>Escoge equipo.</h1>
+        <div class="card"><label>Cliente<input id="reportClientAtStart" readonly aria-label="Cliente del informe" /></label><button id="editClientAtStart" type="button" class="secondary">Cambiar cliente y edificio</button></div>
         <p class="subtitle">Selecciona el tipo de elemento y entra al listado, fotos, importación y correctivos de ese grupo.</p>
         <div class="typeGrid">
           <button id="selectHidranteBtn" class="typeChoice">
@@ -70,13 +71,13 @@
 
         <div class="compactFilters">
           <label>Edificio<input id="filterEdificio" type="search" placeholder="Filtrar edificio" /></label>
-          <label>Número SYCo<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
+          <label>nº syco<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
           <label>Tipo / otros<input id="filterSerie" type="search" placeholder="Filtrar tipo u otros datos" /></label>
           <label>Ordenar
             <select id="sortOrder">
               <option value="none">Sin ordenar</option>
               <option value="edificio">Edificio</option>
-              <option value="numero">Número SYCo</option>
+              <option value="numero">nº syco</option>
             </select>
           </label>
           <label>Estado
@@ -180,7 +181,7 @@
         <div class="instructionBox">
           <h3>Instrucciones de relleno</h3>
           <p><strong>Cliente:</strong> cliente. edificio</p>
-          <p><strong>Núm:</strong> Número SYCo</p>
+          <p><strong>Núm:</strong> nº syco</p>
           <p><strong>Eficacía:</strong> no se rellena</p>
           <p><strong>Op. Realiza:</strong> Revisión, o Revisión y recarga cuando en observaciones se indique recarga o retimbrado.</p>
           <p><strong>Cadu 20 A:</strong> año de fabricación + 20.</p>
@@ -267,15 +268,23 @@
             </div>
           </div>
 
-          <label>Cliente<input id="cliente" /></label>
-          <label>Edificio<input id="edificio" /></label>
-          <label>Número
+          <input id="cliente" type="hidden" />
+          <label class="syco-field">nº syco
             <div class="fieldWithButton">
               <input id="cantidad" />
               <button type="button" id="voiceSycoBtn" class="iconTextButton">Dictar</button>
             </div>
             <span id="voiceSycoStatus" class="fieldHint"></span>
           </label>
+          <label>Edificio<input id="edificio" /></label>
+          <label>Nº serie
+            <div class="fieldWithButton">
+              <input id="numeroSerie" />
+              <button type="button" id="voiceSerieBtn" class="iconTextButton">Dictar</button>
+            </div>
+            <span id="voiceSerieStatus" class="fieldHint"></span>
+          </label>
+
           <label>Ubicación<textarea id="ubicacion" rows="2"></textarea></label>
           <label>Tipo de equipo
             <select id="modelo">
@@ -283,13 +292,6 @@
               <option value="Armario">Armario</option>
               <option value="Columna seca">Columna seca</option>
             </select>
-          </label>
-          <label>Otro 1
-            <div class="fieldWithButton">
-              <input id="numeroSerie" />
-              <button type="button" id="voiceSerieBtn" class="iconTextButton">Dictar</button>
-            </div>
-            <span id="voiceSerieStatus" class="fieldHint"></span>
           </label>
           <label>Otro 2<input id="fechaFabricacion" /></label>
           <label>Otro 3<input id="fechaProximoRetimbrado" /></label>
@@ -349,7 +351,7 @@
     <script src="../../informes/pdf-service.js?v=12"></script>
     <script src="../../informes/data.js?v=3"></script>
     <script src="../../informes/client-portfolio.js?v=2"></script>
-    <script src="../../informes/client-reports.js?v=4"></script>
+    <script src="../../informes/client-reports.js?v=5"></script>
     <script src="app.js?v=23"></script>
   </body>
 </html>

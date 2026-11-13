@@ -1,8 +1,8 @@
-const CACHE_NAME = "integral-hidrantes-v4";
+const CACHE_NAME = "integral-hidrantes-v5";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
+  "./styles.css?v=27",
   "./app.js?v=23",
   "./seed-data.js",
   "./manifest.webmanifest",
@@ -16,7 +16,7 @@ const ASSETS = [
   "../../informes/vendor/pdf.worker.min.js",
   "../../informes/core.js?v=13",
   "../../informes/pdf-service.js?v=12",
-  "../../informes/client-reports.js?v=4",
+  "../../informes/client-reports.js?v=5",
   "../../informes/data.js?v=3",
   "../../informes/client-portfolio.js?v=2"
 ];

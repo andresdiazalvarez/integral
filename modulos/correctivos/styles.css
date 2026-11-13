@@ -703,3 +703,7 @@ label {
     margin-left: 0;
   }
 }
+
+/* Identificación del equipo. */
+.syco-field{padding:12px;border-radius:10px;background:#dceeff;color:#124a82}
+.syco-field input{background:#eaf4ff;border:2px solid #1874c9;color:#103e70;font-weight:700}

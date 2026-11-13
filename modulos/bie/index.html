@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#93c5fd" />
     <title>BIE</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=27" />
   </head>
   <body>
     <header class="topbar">
@@ -53,14 +53,14 @@
         <div class="compactFilters">
           <label>Cliente<input id="filterCliente" type="search" placeholder="Filtrar cliente" /></label>
           <label>Edificio<input id="filterEdificio" type="search" placeholder="Filtrar edificio" /></label>
-          <label>Número SYCo<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
+          <label>nº syco<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
           <label>Nº serie<input id="filterSerie" type="search" placeholder="Filtrar serie" /></label>
           <label>Ordenar
             <select id="sortOrder">
               <option value="none">Sin ordenar</option>
               <option value="cliente">Cliente</option>
               <option value="edificio">Edificio</option>
-              <option value="numero">Número SYCo</option>
+              <option value="numero">nº syco</option>
             </select>
           </label>
           <label>Estado
@@ -88,7 +88,7 @@
                 <th>Visto</th>
                 <th>Cliente</th>
                 <th>Edificio</th>
-                <th>Número SYCo</th>
+                <th>nº syco</th>
                 <th>Ubicación</th>
                 <th>Modelo</th>
                 <th>Fabricante/Marca</th>
@@ -113,7 +113,7 @@
         <div class="formTopLine">
           <button class="back" data-back="list">← Volver</button>
           <div class="lastNumberBox">
-            <span>Último nº SYCo</span>
+            <span>Último nº syco</span>
             <strong id="lastNumberUsed">-</strong>
           </div>
         </div>
@@ -123,9 +123,13 @@
         <form id="recordForm" class="card formCard">
           <input type="hidden" id="recordId" />
 
-          <label>Cliente<input id="cliente" /></label>
+          <input id="cliente" type="hidden" />
+          <label class="syco-field">nº syco
+            <input id="cantidad" /></label>
           <label>Edificio<input id="edificio" /></label>
-          <label>Número SYCo<input id="cantidad" /></label>
+          <label>Nº serie
+            <input id="numeroSerie" /></label>
+
           <label>Ubicación<textarea id="ubicacion" rows="2"></textarea></label>
           <label>Modelo
             <select id="modelo">
@@ -136,7 +140,6 @@
             </select>
           </label>
           <label>Fabricante / Marca<input id="fabricanteMarca" /></label>
-          <label>Nº serie<input id="numeroSerie" /></label>
           <label>Fecha / año fabricación
             <select id="fechaFabricacion"></select>
             <input id="fechaFabricacionManual" type="text" placeholder="O escribe una fecha manualmente" />
@@ -269,7 +272,7 @@
     <script src="../../informes/pdf-service.js?v=12"></script>
     <script src="../../informes/data.js?v=3"></script>
     <script src="../../informes/client-portfolio.js?v=2"></script>
-    <script src="../../informes/client-reports.js?v=4"></script>
+    <script src="../../informes/client-reports.js?v=5"></script>
     <script src="app.js?v=23"></script>
   </body>
 </html>
