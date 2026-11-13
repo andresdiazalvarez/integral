@@ -523,6 +523,14 @@
       gap: 12px;
     }
 
+    .system-action-confirm { background:#ffeb00;color:#111;border:4px solid #b58b00;border-radius:14px;padding:24px;max-width:560px;width:calc(100% - 32px);box-sizing:border-box;box-shadow:0 12px 60px #0008; }
+    .system-action-confirm::backdrop { background:#0009; }
+    .system-action-confirm h2 { margin-top:0;font-size:24px; }
+    .system-action-confirm p { font-size:19px;font-weight:700;line-height:1.5; }
+    .system-confirm-actions { display:flex;gap:12px;flex-wrap:wrap; }
+    .system-confirm-actions .btn { background:#fff;color:#111;border:2px solid #222;min-height:48px;flex:1; }
+    .system-confirm-actions .btn:focus-visible { outline:4px solid #064cc9;outline-offset:3px; }
+
     .photo-slot {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -2875,9 +2883,9 @@ Instalaciones de detección de gases: Aplicables cuando existan detectores, cent
       return changed;
     }
 
-    function deleteListingExcel() {
+    async function deleteListingExcel() {
       if (!appState.listing?.rows?.length && !appState.listing?.fileData) return;
-      if (!window.confirm("¿Quieres eliminar completamente el listado cargado?")) return;
+      if (!await confirmSystemAction("¿Quieres eliminar completamente el listado cargado?")) return;
       appState.listing = emptyListing();
       saveState();
       renderListing();
@@ -3467,10 +3475,10 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       showCurrentReportScreen("Informe grabado.");
     }
 
-    function deleteCurrentSavedReport() {
+    async function deleteCurrentSavedReport() {
       if (!appState.current.editingId) return;
       const deletedNumber = appState.current.number;
-      if (!window.confirm(`¿Quieres eliminar definitivamente el Informe ${deletedNumber}?`)) return;
+      if (!await confirmSystemAction(`¿Quieres eliminar definitivamente el Informe ${deletedNumber}?`)) return;
       appState.savedReports = appState.savedReports.filter(report => report.id !== appState.current.editingId);
       appState.nextNumber = getNextReportNumber();
       appState.current = {
@@ -3712,11 +3720,11 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       showCurrentReportScreen("Selecciona un sistema amarillo para comenzar el informe.", "homeScreen");
     }
 
-    function clearCurrentReport() {
+    async function clearCurrentReport() {
       const message = appState.current.editingId
         ? `¿Quieres eliminar definitivamente el Informe ${appState.current.number} completo?`
         : "¿Quieres borrar todos los datos del informe que estás preparando?";
-      if (!window.confirm(message)) return;
+      if (!await confirmSystemAction(message)) return;
 
       if (appState.current.editingId) {
         const deleted = appState.savedReports.find(report => report.id === appState.current.editingId);
@@ -3759,7 +3767,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     }
 
     async function clearAppData() {
-      const ok = window.confirm("¿Quieres eliminar definitivamente TODOS los informes, sistemas, listados, textos y fotos guardados en SISTEMAS?");
+      const ok = await confirmSystemAction("¿Quieres eliminar definitivamente TODOS los informes, sistemas, listados, textos y fotos guardados en SISTEMAS?");
       if (!ok) return;
       localStorage.removeItem(STORAGE_KEY);
       await clearStateFromDb();
@@ -4242,6 +4250,62 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       showScreen("newReportScreen");
     }
 
+    function systemActionPrompt(message, choices) {
+      return new Promise(resolve => {
+        const dialog = document.createElement("dialog");
+        dialog.className = "system-action-confirm";
+        const title = document.createElement("h2");title.textContent = "Confirma antes de continuar";
+        const text = document.createElement("p");text.textContent = message;
+        const actions = document.createElement("div");actions.className = "system-confirm-actions";
+        const finish = value => { dialog.close();dialog.remove();resolve(value); };
+        for (const [label, value] of choices) {
+          const button = document.createElement("button");button.type="button";button.className="btn";button.textContent=label;
+          button.addEventListener("click", () => finish(value));actions.append(button);
+        }
+        dialog.append(title,text,actions);document.body.append(dialog);
+        dialog.addEventListener("cancel", event => {event.preventDefault();finish(null);});
+        dialog.showModal();actions.lastElementChild.focus();
+      });
+    }
+
+    function confirmSystemAction(message) {
+      return systemActionPrompt(message, [[/sustituir/i.test(message) ? "Sí, sustituir" : "Sí, eliminar",true],["Cancelar",false]]);
+    }
+
+    async function saveReportBeforeLeaving() {
+      const report = makeCurrentReportSnapshot();
+      report.id = appState.current.editingId || makeId();
+      report.format = appState.current.format || "old";
+      report.sourceSystems = cloneData(appState.current.systems);
+      const previousReports = cloneData(appState.savedReports), previousEditingId = appState.current.editingId;
+      const index = appState.savedReports.findIndex(item => item.id === report.id);
+      if (index < 0) appState.savedReports.push(report);else appState.savedReports[index] = report;
+      appState.current.editingId = report.id;
+      const localOk = saveStateToLocalStorage(), dbOk = await saveStateToDb(appState);
+      if (!localOk && !dbOk) {
+        appState.savedReports = previousReports;appState.current.editingId = previousEditingId;
+        throw Error("No se ha podido grabar el informe. Permanece en esta pantalla e inténtalo de nuevo.");
+      }
+    }
+
+    const confirmedBackButtons = new WeakSet();let backPromptOpen = false;
+    document.addEventListener("click", async event => {
+      const button = event.target.closest('button[id^="backFrom"]');
+      if (!button) return;
+      if (confirmedBackButtons.has(button)) {confirmedBackButtons.delete(button);return;}
+      event.preventDefault();event.stopImmediatePropagation();
+      if (backPromptOpen) return;
+      backPromptOpen = true;
+      try {
+        const choice = await systemActionPrompt("¿Quieres grabar el informe antes de volver?", [["Grabar y volver","save"],["Volver sin grabar","leave"],["Cancelar",null]]);
+        if (!choice) return;
+        if (choice === "save") await saveReportBeforeLeaving();
+        confirmedBackButtons.add(button);button.click();
+      } catch(error) {
+        await systemActionPrompt(error.message, [["Continuar editando",null]]);
+      } finally {backPromptOpen=false;}
+    }, true);
+
     document.getElementById("saveCurrentBtn").addEventListener("click", saveCurrentReport);
     document.getElementById("viewAllBtn").addEventListener("click", () => {
       previewReturnScreen = "newReport";
@@ -4474,7 +4538,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       }
     });
 
-    els.preparedEntries.addEventListener("click", event => {
+    els.preparedEntries.addEventListener("click", async event => {
       const editButton = event.target.closest("[data-edit-entry]");
       if (editButton) {
         systemReturnScreen = "newReport";
@@ -4485,7 +4549,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       const removeButton = event.target.closest("[data-remove-entry]");
       if (removeButton) {
         const entry = appState.current.entries.find(item => item.id === removeButton.dataset.removeEntry);
-        if (!window.confirm(`¿Quieres quitar definitivamente ${entry?.type || "este sistema"} del informe?`)) return;
+        if (!await confirmSystemAction(`¿Quieres quitar definitivamente ${entry?.type || "este sistema"} del informe?`)) return;
         appState.current.entries = appState.current.entries.filter(entry => entry.id !== removeButton.dataset.removeEntry);
         if (activeEntryId === removeButton.dataset.removeEntry) {
           activeEntryId = "";
@@ -4496,7 +4560,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       }
     });
 
-    els.reportPreparedEntries.addEventListener("click", event => {
+    els.reportPreparedEntries.addEventListener("click", async event => {
       const editButton = event.target.closest("[data-edit-entry]");
       if (editButton) {
         if (appState.current.format === "new") {
@@ -4511,7 +4575,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       const removeButton = event.target.closest("[data-remove-entry]");
       if (removeButton) {
         const entry = appState.current.entries.find(item => item.id === removeButton.dataset.removeEntry);
-        if (!window.confirm(`¿Quieres quitar definitivamente ${entry?.type || "este sistema"} del informe?`)) return;
+        if (!await confirmSystemAction(`¿Quieres quitar definitivamente ${entry?.type || "este sistema"} del informe?`)) return;
         appState.current.entries = appState.current.entries.filter(entry => entry.id !== removeButton.dataset.removeEntry);
         if (activeEntryId === removeButton.dataset.removeEntry) {
           activeEntryId = "";
@@ -4527,14 +4591,14 @@ ${item.voice.trim() || "Sin texto aportado."}`;
     });
     els.chatGptResult.addEventListener("input", saveSystemInputs);
 
-    els.savedReports.addEventListener("click", event => {
+    els.savedReports.addEventListener("click", async event => {
       const button = event.target.closest("[data-action]");
       if (!button) return;
       const report = getReport(button.dataset.id);
       if (!report) return;
 
       if (button.dataset.action === "delete") {
-        if (!window.confirm(`¿Quieres eliminar definitivamente el Informe ${report.number}?`)) return;
+        if (!await confirmSystemAction(`¿Quieres eliminar definitivamente el Informe ${report.number}?`)) return;
         appState.savedReports = appState.savedReports.filter(item => item.id !== report.id);
         if (appState.current.editingId === report.id) {
           appState.current = {
@@ -4592,7 +4656,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       const index = Number(input.dataset.photo);
       try {
         const previous = data.photos[index];
-        if (previous && !window.confirm(`La foto ${index + 1} ya existe. ¿Quieres sustituirla por la nueva?`)) {
+        if (previous && !await confirmSystemAction(`La foto ${index + 1} ya existe. ¿Quieres sustituirla por la nueva?`)) {
           input.value = "";
           return;
         }
@@ -4610,13 +4674,13 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       }
     });
 
-    els.photoContainer.addEventListener("click", event => {
+    els.photoContainer.addEventListener("click", async event => {
       const button = event.target.closest("[data-delete-photo]");
       if (!button) return;
       const data = ensureEntry(activeEntryId);
       const index = Number(button.dataset.deletePhoto);
       if (!data.photos[index]) return;
-      if (!window.confirm(`¿Quieres eliminar definitivamente la foto ${index + 1}?`)) return;
+      if (!await confirmSystemAction(`¿Quieres eliminar definitivamente la foto ${index + 1}?`)) return;
       data.photos[index] = null;
       data.mountedHtml = "";
       data.mountedText = "";
@@ -4631,7 +4695,7 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       const index = Number(input.dataset.photo);
       try {
         const previous = data.photos[index];
-        if (previous && !window.confirm(`La foto ${index + 1} ya existe. ¿Quieres sustituirla por la nueva?`)) {
+        if (previous && !await confirmSystemAction(`La foto ${index + 1} ya existe. ¿Quieres sustituirla por la nueva?`)) {
           input.value = "";
           return;
         }
@@ -4649,13 +4713,13 @@ ${item.voice.trim() || "Sin texto aportado."}`;
       }
     });
 
-    els.quickPhotoContainer.addEventListener("click", event => {
+    els.quickPhotoContainer.addEventListener("click", async event => {
       const button = event.target.closest("[data-delete-photo]");
       if (!button) return;
       const data = ensureEntry(activeEntryId);
       const index = Number(button.dataset.deletePhoto);
       if (!data.photos[index]) return;
-      if (!window.confirm(`¿Quieres eliminar definitivamente la foto ${index + 1}?`)) return;
+      if (!await confirmSystemAction(`¿Quieres eliminar definitivamente la foto ${index + 1}?`)) return;
       data.photos[index] = null;
       data.mountedHtml = "";
       data.mountedText = "";
